@@ -1,0 +1,131 @@
+form {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+form#pair-form {
+  position: relative;
+}
+
+input[type="text"] {
+  background: #23262f;
+  border: 1.5px solid #353945;
+  border-radius: 10px;
+  color: #f4f4f4;
+  padding: 10px 14px;
+  font-size: 1rem;
+  outline: none;
+  flex: 1;
+  transition: border 0.2s, box-shadow 0.2s;
+}
+
+input[type="text"]:focus {
+  border: 1.5px solid #45b26b;
+  box-shadow: 0 0 0 2px #45b26b33;
+}
+
+button, .delete-btn, #btnFetchWallet {
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  font-weight: 700;
+  background: linear-gradient(90deg, #45b26b 0%, #3772ff 100%);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s, color 0.2s;
+  box-shadow: 0 2px 8px 0 #00000022;
+  outline: none;
+}
+
+button:hover, .delete-btn:hover, #btnFetchWallet:hover {
+  background: linear-gradient(90deg, #3772ff 0%, #45b26b 100%);
+  color: #fff;
+  box-shadow: 0 4px 16px 0 #3772ff44;
+}
+
+#pair-suggestions {
+  position: absolute;
+  background: #23262f;
+  border: 1.5px solid #353945;
+  border-radius: 10px;
+  margin-top: 44px;
+  z-index: 10;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  left: 0;
+  right: auto;
+  min-width: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  display: none;
+}
+
+#pair-suggestions.active {
+  display: block;
+}
+
+#pair-suggestions div {
+  padding: 10px 14px;
+  cursor: pointer;
+  color: #f4f4f4;
+  border-bottom: 1px solid #353945;
+  transition: background 0.15s;
+}
+
+#pair-suggestions div:last-child {
+  border-bottom: none;
+}
+
+#pair-suggestions div:hover {
+  background: #353945;
+}
+
+.input-group {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+#walletAddress {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1.5px solid #353945;
+  background: #181a20;
+  color: #f4f4f4;
+  font-size: 1rem;
+  outline: none;
+}
+
+#walletAddress:focus {
+  border: 1.5px solid #45b26b;
+}
+
+.wallet-saved-group {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  gap: 8px;
+}
+
+.wallet-saved-select {
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  font-size: 0.97rem;
+  border-radius: 8px;
+  border: 1.5px solid #353945;
+  background: #23262f;
+  color: #f4f4f4;
+  padding: 7px 12px;
+  outline: none;
+  min-width: 0;
+  flex: 1;
+  transition: border 0.2s;
+}
+
+.wallet-saved-select:focus {
+  border: 1.5px solid #45b26b;
+}

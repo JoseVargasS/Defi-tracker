@@ -1,0 +1,307 @@
+#wallet-info {
+  margin-top: 12px;
+  background: #23262f;
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 2px 8px 0 #0000000a;
+}
+
+.wallet-section .card {
+  background: #23262f;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px 0 #00000022;
+  padding: 32px 32px 24px 32px;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 500px;
+}
+
+.wallet-section h1, .crypto-section h2 {
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: #45b26b;
+  text-align: center;
+  margin-bottom: 18px;
+  letter-spacing: -1px;
+}
+
+.wallet-section h2 {
+  color: #ffa726;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+#btnFetchWallet {
+  background: linear-gradient(90deg, #45b26b 0%, #3772ff 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#btnFetchWallet:hover {
+  background: linear-gradient(90deg, #3772ff 0%, #45b26b 100%);
+}
+
+#walletData {
+  margin-top: 10px;
+  color: #f4f4f4;
+  font-size: 1.05rem;
+  word-break: break-all;
+}
+
+.wallet-title {
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  font-size: 1.08rem;
+  font-weight: 800;
+  color: #3772ff;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.wallet-subtitle {
+  font-size: 0.98rem;
+  color: #ffa726;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.btn-wallet {
+  background: linear-gradient(90deg, #ff9800 0%, #3772ff 100%);
+  color: #fff;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  font-weight: 800;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-size: 0.97rem;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px 0 #3772ff33;
+}
+
+.btn-wallet:hover {
+  background: linear-gradient(90deg, #3772ff 0%, #ff9800 100%);
+  color: #fff;
+  box-shadow: 0 4px 16px 0 #3772ff44;
+}
+
+.wallet-balances {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0 0;
+}
+
+.wallet-balance-item {
+  background: #181a20;
+  border-radius: 8px;
+  margin-bottom: 7px;
+  padding: 8px 14px;
+  font-size: 0.97rem;
+  color: #f4f4f4;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  font-weight: 600;
+  box-shadow: 0 1px 4px 0 #00000011;
+  justify-content: space-between;
+}
+
+.wallet-balance-symbol {
+  color: #45b26b;
+  font-weight: 800;
+  margin-right: 6px;
+  font-size: 1em;
+}
+
+.wallet-balance-value {
+  color: #fff;
+  font-weight: 700;
+  font-size: 1em;
+  margin-right: 10px;
+}
+
+.wallet-balance-usd {
+  color: #ffa726;
+  font-weight: 700;
+  font-size: 0.98em;
+  margin-left: auto;
+  min-width: 70px;
+  text-align: right;
+}
+
+.wallet-balance-eth {
+  color: #1ecb81;
+}
+
+.wallet-defi-title {
+  margin-top: 18px;
+  margin-bottom: 6px;
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: #ffa726;
+  background: none;
+  border: none;
+  padding: 0 0 0 2px;
+  letter-spacing: 0.5px;
+}
+
+.wallet-defi-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #23262f;
+  border-radius: 8px;
+  margin-bottom: 7px;
+  padding: 8px 12px;
+  box-shadow: 0 1px 4px 0 #00000011;
+  font-size: 1.01rem;
+}
+
+.wallet-defi-protocol {
+  font-weight: 700;
+  color: #45b26b;
+  min-width: 90px;
+}
+
+.wallet-defi-balance {
+  color: #f4f4f4;
+  font-weight: 600;
+  min-width: 80px;
+}
+
+.wallet-defi-usd {
+  color: #ffa726;
+  font-weight: 700;
+  margin-left: auto;
+  min-width: 70px;
+  text-align: right;
+}
+
+.wallet-dashboard {
+  background: #181a20;
+  border-radius: 18px;
+  box-shadow: 0 4px 32px 0 #0000001a;
+  padding: 24px 18px 18px 18px;
+  margin: 0 auto 24px auto;
+  max-width: 520px;
+}
+
+.wallet-totals {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  gap: 2px;
+}
+
+.wallet-total-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #45b26b;
+  margin-bottom: 2px;
+}
+
+.wallet-total-usd {
+  font-size: 2.1rem;
+  font-weight: 900;
+  color: #fff;
+  margin-bottom: 2px;
+}
+
+.wallet-total-sub {
+  font-size: 1.08rem;
+  color: #ffa726;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.wallet-section-title {
+  font-size: 1.18rem;
+  font-weight: 700;
+  color: #ffa726;
+  margin-bottom: 10px;
+  margin-top: 18px;
+}
+
+.wallet-assets-card, .wallet-defi-card {
+  background: #23262f;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px 0 #00000022;
+  padding: 18px 12px 12px 12px;
+  margin-bottom: 18px;
+}
+
+.wallet-assets-table, .wallet-defi-table {
+  width: 100%;
+  max-width: 100%;
+  table-layout: auto;
+  border-radius: 10px;
+  overflow: hidden;
+  font-size: 0.93em;
+}
+
+.wallet-assets-table th, .wallet-defi-table th,
+.wallet-assets-table td, .wallet-defi-table td {
+  padding: 4px 4px;
+  text-align: left;
+  word-break: break-all;
+  font-size: 0.93em;
+  max-width: 90px;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+.wallet-assets-table td {
+  font-size: 0.92em;
+}
+
+.wallet-assets-table td:nth-child(2),
+.wallet-assets-table td:nth-child(3),
+.wallet-assets-table td:nth-child(4) {
+  text-align: right;
+}
+
+.wallet-assets-table th:nth-child(2),
+.wallet-assets-table th:nth-child(3),
+.wallet-assets-table th:nth-child(4) {
+  text-align: right;
+}
+
+.wallet-assets-table th, .wallet-defi-table th {
+  background: #181a20;
+  color: #aaa;
+  font-weight: 600;
+}
+
+.wallet-assets-table tr, .wallet-defi-table tr {
+  border-bottom: 1px solid #23262f;
+}
+
+.wallet-assets-table tr:last-child, .wallet-defi-table tr:last-child {
+  border-bottom: none;
+}
+
+.wallet-loading {
+  color: #ffa726;
+  font-size: 1.1rem;
+  text-align: center;
+  margin: 18px 0;
+}
+
+.wallet-error {
+  color: #e74c4c;
+  font-size: 1.1rem;
+  text-align: center;
+  margin: 18px 0;
+}
+
+.wallet-section {
+  min-width: 300px;
+}
