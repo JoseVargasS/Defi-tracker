@@ -435,6 +435,12 @@ document.getElementById('btnFetchWallet').addEventListener('click', async () => 
       if (a.symbol === 'USUAL') icon = '<img src="https://app.usual.money/tokens/USUAL.webp" alt="USUAL" style="width:18px;height:18px;vertical-align:middle;margin-right:4px;">';
       else if (a.symbol === 'USUALX') icon = '<img src="https://static.coinstats.app/coins/usualxXxe.png" alt="USUALX" style="width:18px;height:18px;vertical-align:middle;margin-right:4px;">';
       else if (a.symbol === 'USD0') icon = '<img src="https://static.coinstats.app/coins/usual-usdE9O.png" alt="USD0" style="width:18px;height:18px;vertical-align:middle;margin-right:4px;">';
+      else if (a.symbol === 'BIO') icon = '<img src="https://etherscan.io/token/images/bioxyz_32.png" alt="BIO" style="width:18px;height:18px;vertical-align:middle;margin-right:4px;">';
+      else if (a.symbol === 'ETH') icon = '<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Ethereum-icon-purple.svg/1200px-Ethereum-icon-purple.svg.png" alt="ETH" style="width:18px;height:18px;vertical-align:middle;margin-right:4px;">';
+      else if (a.symbol === 'USDT') icon = '<img src="https://cryptologos.cc/logos/tether-usdt-logo.png" alt="USDT" style="width:18px;height:18px;vertical-align:middle;margin-right:4px;">';
+      else if (a.symbol === 'USDC') icon = '<img src="https://cryptologos.cc/logos/usd-coin-usdc-logo.png" alt="USDC" style="width:18px;height:18px;vertical-align:middle;margin-right:4px;">';
+      else if (a.symbol === 'BTC') icon = '<img src="https://cryptologos.cc/logos/bitcoin-btc-logo.png?v=040" alt="BTC" style="width:18px;height:18px;vertical-align:middle;margin-right:4px;">';
+      else if (a.symbol === 'BNB') icon = '<img src="https://cryptologos.cc/logos/binance-coin-bnb-logo.png" alt="BNB" style="width:18px;height:18px;vertical-align:middle;margin-right:4px;">';
       const price = (a.symbol === 'USUAL' || a.symbol === 'USUALX' || a.symbol === 'USD0')
         ? a.price ? '$' + a.price.toFixed(4) : '-'
         : a.price ? '$' + a.price.toFixed(2) : '-';
@@ -582,7 +588,7 @@ async function fetch24hStats(symbol) {
 function getCoinName(symbol) {
   const base = symbol.replace('USDT', '').toUpperCase();
   const names = {
-    BTC: 'Bitcoin', ETH: 'Ethereum', USDT: 'Tether', BNB: 'BNB', SOL: 'Solana', ADA: 'Cardano', XRP: 'XRP', DOGE: 'Dogecoin', MATIC: 'Polygon', TRX: 'TRON', LINK: 'Chainlink', LTC: 'Litecoin', DOT: 'Polkadot', SHIB: 'Shiba Inu', USDC: 'USD Coin', AVAX: 'Avalanche', OP: 'Optimism', ARB: 'Arbitrum', PEPE: 'Pepe',
+    BTC: 'BTC', ETH: 'ETH', USDT: 'Tether', BNB: 'BNB', SOL: 'Solana', ADA: 'Cardano', XRP: 'XRP', DOGE: 'Dogecoin', MATIC: 'Polygon', TRX: 'TRON', LINK: 'Chainlink', LTC: 'Litecoin', DOT: 'Polkadot', SHIB: 'Shiba Inu', USDC: 'USD Coin', AVAX: 'Avalanche', OP: 'Optimism', ARB: 'Arbitrum', PEPE: 'Pepe',
     // Agrega más si lo deseas
   };
   return names[base] || base;
@@ -1087,6 +1093,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (sym === 'USUAL') icon = '<img src="https://app.usual.money/tokens/USUAL.webp" alt="USUAL" style="width:16px;height:16px;vertical-align:middle;margin-right:3px;">';
         else if (sym === 'USUALX') icon = '<img src="https://static.coinstats.app/coins/usualxXxe.png" alt="USUALX" style="width:16px;height:16px;vertical-align:middle;margin-right:3px;">';
         else if (sym === 'USD0') icon = '<img src="https://static.coinstats.app/coins/usual-usdE9O.png" alt="USD0" style="width:16px;height:16px;vertical-align:middle;margin-right:3px;">';
+        else if (sym === 'BIO') icon = '<img src="https://etherscan.io/token/images/bioxyz_32.png" alt="BIO" style="width:18px;height:18px;vertical-align:middle;margin-right:4px;">';
+        else if (sym === 'ETH') icon = '<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Ethereum-icon-purple.svg/1200px-Ethereum-icon-purple.svg.png" alt="ETH" style="width:18px;height:18px;vertical-align:middle;margin-right:4px;">';
+        else if (sym === 'USDT') icon = '<img src="https://cryptologos.cc/logos/tether-usdt-logo.png" alt="USDT" style="width:18px;height:18px;vertical-align:middle;margin-right:4px;">';
+        else if (sym === 'USDC') icon = '<img src="https://cryptologos.cc/logos/usd-coin-usdc-logo.png" alt="USDC" style="width:18px;height:18px;vertical-align:middle;margin-right:4px;">';
+        else if (sym === 'BTC') icon = '<img src="https://cryptologos.cc/logos/bitcoin-btc-logo.png?v=040" alt="BTC" style="width:18px;height:18px;vertical-align:middle;margin-right:4px;">';
+        else if (sym === 'BNB') icon = '<img src="https://cryptologos.cc/logos/binance-coin-bnb-logo.png" alt="BNB" style="width:18px;height:18px;vertical-align:middle;margin-right:4px;">';
         // Cantidad con color y signo
         let amountText = isSent
           ? `<span class='tx-amount sent'>- ${fmt(amt, 2)}</span>`

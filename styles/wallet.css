@@ -5,18 +5,31 @@
   padding: 16px;
   box-shadow: 0 2px 8px 0 #0000000a;
 }
+.wallet-section {
+  flex: 0 1 505px;
+  max-width: 505px;
+  min-width: 395px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 48px;
+  box-sizing: border-box;
+  width: 100%;
+}
 
 .wallet-section .card {
   background: #23262f;
   border-radius: 14px;
   box-shadow: 0 2px 12px 0 #00000022;
   padding: 32px 32px 24px 32px;
-  margin: 0 auto;
+  margin: 0;
   width: 100%;
-  max-width: 500px;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
-.wallet-section h1, .crypto-section h2 {
+.wallet-section h1,
+.crypto-section h2 {
   font-size: 1.7rem;
   font-weight: 800;
   color: #45b26b;
@@ -55,7 +68,7 @@
 }
 
 .wallet-title {
-  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif;
   font-size: 1.08rem;
   font-weight: 800;
   color: #3772ff;
@@ -74,7 +87,7 @@
 .btn-wallet {
   background: linear-gradient(90deg, #ff9800 0%, #3772ff 100%);
   color: #fff;
-  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif;
   font-weight: 800;
   border: none;
   border-radius: 8px;
@@ -107,7 +120,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif;
   font-weight: 600;
   box-shadow: 0 1px 4px 0 #00000011;
   justify-content: space-between;
@@ -230,7 +243,8 @@
   margin-top: 18px;
 }
 
-.wallet-assets-card, .wallet-defi-card {
+.wallet-assets-card,
+.wallet-defi-card {
   background: #23262f;
   border-radius: 14px;
   box-shadow: 0 2px 12px 0 #00000022;
@@ -238,7 +252,8 @@
   margin-bottom: 18px;
 }
 
-.wallet-assets-table, .wallet-defi-table {
+.wallet-assets-table,
+.wallet-defi-table {
   width: 100%;
   max-width: 100%;
   table-layout: auto;
@@ -247,8 +262,10 @@
   font-size: 0.93em;
 }
 
-.wallet-assets-table th, .wallet-defi-table th,
-.wallet-assets-table td, .wallet-defi-table td {
+.wallet-assets-table th,
+.wallet-defi-table th,
+.wallet-assets-table td,
+.wallet-defi-table td {
   padding: 4px 4px;
   text-align: left;
   word-break: break-all;
@@ -274,17 +291,20 @@
   text-align: right;
 }
 
-.wallet-assets-table th, .wallet-defi-table th {
+.wallet-assets-table th,
+.wallet-defi-table th {
   background: #181a20;
   color: #aaa;
   font-weight: 600;
 }
 
-.wallet-assets-table tr, .wallet-defi-table tr {
+.wallet-assets-table tr,
+.wallet-defi-table tr {
   border-bottom: 1px solid #23262f;
 }
 
-.wallet-assets-table tr:last-child, .wallet-defi-table tr:last-child {
+.wallet-assets-table tr:last-child,
+.wallet-defi-table tr:last-child {
   border-bottom: none;
 }
 
@@ -295,13 +315,30 @@
   margin: 18px 0;
 }
 
+/* --- Nueva sección para header de billetera --- */
+.wallet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.wallet-header .wallet-title {
+  text-align: left;
+  margin: 0;
+  flex: 1;
+}
+
+.wallet-header .wallet-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
 .wallet-error {
   color: #e74c4c;
   font-size: 1.1rem;
   text-align: center;
   margin: 18px 0;
-}
-
-.wallet-section {
-  min-width: 300px;
 }
