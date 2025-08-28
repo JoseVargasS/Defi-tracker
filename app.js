@@ -2,9 +2,8 @@
 const ETHERSCAN_API_KEY = 'F7F8ZYHRFCQU3CC3H8R15A5E3NN5GH1CU4';
 const ETHERSCAN_API = 'https://api.etherscan.io/api';
 const BINANCE_API = 'https://api.binance.com/api/v3';
-const COVALENT_API_KEY = 'ckey_docs'; // Puedes reemplazar por tu propia API key gratuita
-const COVALENT_API = 'https://api.covalenthq.com/v1';
 const COINGECKO_API = 'https://api.coingecko.com/api/v3';
+const HTX_API = 'https://api.huobi.pro';
 
 // Elementos DOM
 const walletForm = document.getElementById('wallet-form');
@@ -34,6 +33,8 @@ let currentInterval = '1d';
 let chartZoom = 60; // Número de velas visibles (zoom)
 let lastPrices = {};
 let coinIcons = {};
+// CORRECCIÓN: Cache para evitar llamadas duplicadas a la API y el error 429
+const pricesCache = {};
 
 // Plugin crosshair para Chart.js
 const crosshairPlugin = {
@@ -201,7 +202,7 @@ const customTokens = [
 ];
 
 // --- NUEVO CÓDIGO PARA CONSULTA DE BILLETERA ETH ---
-const ETH_API = 'https://api.etherscan.io/v2/api';
+const ETH_API = 'https://api.etherscan.io/api';
 const ETH_KEY = 'F7F8ZYHRFCQU3CC3H8R15A5E3NN5GH1CU4';
 const walletDataEl = document.getElementById('walletData');
 
@@ -211,12 +212,6 @@ async function getEthPriceUSD() {
     const res = await fetch(`${COINGECKO_API}/simple/price?ids=ethereum&vs_currencies=usd`);
     const data = await res.json();
     if (data.ethereum && data.ethereum.usd && data.ethereum.usd > 0) return data.ethereum.usd;
-  } catch { }
-  // 2. CoinStats fallback
-  try {
-    const res = await fetch('https://api.coinstats.app/public/v1/coins/ethereum');
-    const data = await res.json();
-    if (data.coin && data.coin.price && data.coin.price > 0) return data.coin.price;
   } catch { }
   return null;
 }
@@ -234,122 +229,88 @@ async function getTokenPriceUSD(symbol) {
       return price;
     }
   } catch { }
-  // 2. CoinStats fallback
-  try {
-    const res = await fetch(`https://api.coinstats.app/public/v1/coins/${id}`);
-    const data = await res.json();
-    let price = data.coin && data.coin.price ? data.coin.price : null;
-    if (price && price > 0) {
-      if (["usual", "usualx"].includes(id)) return parseFloat(price.toFixed(4));
-      return price;
-    }
-  } catch { }
-  // 3. Si es USD0 y no hay precio, asumir 1
+
+  // 2. Si es USD0 y no hay precio, asumir 1
   if (symbol.toUpperCase() === 'USD0') return 1;
   return null;
 }
 
-async function getHistoricalTokenPriceUSD(symbol, date, forceFallback = false) {
-  // symbol: 'USUAL', 'USUALX', 'USD0', 'ETH', etc.
-  // date: Date object
-  const map = { USUAL: 'usual', USUALX: 'usualx', USD0: 'usd0', ETH: 'ethereum' };
-  const id = map[symbol.toUpperCase()];
-
-  // CoinStats para USUALX y USD0
-  if (symbol.toUpperCase() === 'USUALX' || symbol.toUpperCase() === 'USD0') {
-    try {
-      const coinId = symbol.toUpperCase() === 'USUALX' ? 'usualx' : 'usd0';
-      const res = await fetch(`https://api.coinstats.app/public/v1/charts?period=all&coinId=${coinId}`);
-      const data = await res.json();
-      if (data && data.chart && data.chart.length) {
-        let minDiff = Infinity;
-        let closest = null;
-        let closestTs = null;
-        const txTs = date.getTime(); // milisegundos
-        for (const [priceTs, price] of data.chart) {
-          // CoinStats devuelve timestamps en segundos, convertir a milisegundos
-          const priceTsMs = priceTs * 1000;
-          const diff = Math.abs(priceTsMs - txTs);
-          if (diff < minDiff) {
-            minDiff = diff;
-            closest = price;
-            closestTs = priceTsMs;
-          }
-        }
-        // Si la diferencia es mayor a 12 horas, mostrar aviso
-        let lowPrec = "";
-        if (minDiff > 12 * 60 * 60 * 1000) {
-          lowPrec = "<span title='El precio histórico puede no ser preciso' style='color:#e7c000;font-size:1em;margin-left:4px;'>⚠️</span>";
-        }
-        if (closest) return parseFloat(closest);
-      }
-    } catch { }
+// CORRECCIÓN: Lógica de búsqueda histórica optimizada para evitar errores 429/CORS
+async function getHistoricalTokenPriceUSD(symbol, date) {
+  const cacheKey = `${symbol}-${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date.getHours()}`;
+  if (pricesCache[cacheKey]) {
+    return pricesCache[cacheKey];
   }
+  const map = { USUAL: 'usual', USUALX: 'usualx', USD0: 'usd0' };
+  const id = map[symbol.toUpperCase()];
+  const ts = Math.floor(date.getTime() / 1000);
+  const from = ts - 60 * 60 * 3; // 3 horas antes
+  const to = ts + 60 * 60 * 3; // 3 horas después
+  let price = null;
+  let minDiff = Infinity;
+  let lowPrec = "";
 
-  // Dexscreener: buscar address
-  const custom = customTokens.find(t => t.symbol === symbol.toUpperCase());
-  if (custom) {
+  // 1. Dexscreener para tokens específicos
+  if (id) {
     try {
-      // Buscar el par USDT en Ethereum
-      const tokenAddress = custom.address;
-      const pairRes = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${tokenAddress}`);
-      const pairData = await pairRes.json();
-      // Buscar el par con USDT en Ethereum
-      const pair = (pairData.pairs || []).find(p => p.baseToken.address.toLowerCase() === tokenAddress.toLowerCase() && p.quoteToken.symbol === 'USDT' && p.chainId === 'ethereum');
-      if (pair && pair.pairAddress) {
-        // Buscar vela más cercana al timestamp
-        const ts = Math.floor(date.getTime() / 1000);
-        const from = ts - 60 * 60 * 3; // 3 horas antes
-        const to = ts + 60 * 60 * 3;   // 3 horas después
-        const candlesRes = await fetch(`https://api.dexscreener.com/latest/dex/pairs/ethereum/${pair.pairAddress}/candles?interval=1h&from=${from}&to=${to}`);
-        const candlesData = await candlesRes.json();
-        if (candlesData && candlesData.candles && candlesData.candles.length) {
-          // Buscar la vela más cercana
-          let minDiff = Infinity;
-          let closest = null;
-          for (const candle of candlesData.candles) {
-            const diff = Math.abs(candle.timestamp * 1000 - date.getTime());
-            if (diff < minDiff) {
-              minDiff = diff;
-              closest = candle;
+      const custom = customTokens.find(t => t.symbol === symbol.toUpperCase());
+      if (custom) {
+        const tokenAddress = custom.address;
+        const pairRes = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${tokenAddress}`);
+        const pairData = await pairRes.json();
+        const pair = (pairData.pairs || []).find(p => p.baseToken.address.toLowerCase() === tokenAddress.toLowerCase() && p.quoteToken.symbol === 'USDT' && p.chainId === 'ethereum');
+        if (pair && pair.pairAddress) {
+          const candlesRes = await fetch(`https://api.dexscreener.com/latest/dex/pairs/ethereum/${pair.pairAddress}/candles?interval=1h&from=${from}&to=${to}`);
+          const candlesData = await candlesRes.json();
+          if (candlesData && candlesData.candles && candlesData.candles.length) {
+            for (const candle of candlesData.candles) {
+              const diff = Math.abs(candle.timestamp * 1000 - date.getTime());
+              if (diff < minDiff) {
+                minDiff = diff;
+                price = candle.close;
+              }
+            }
+            if (price) {
+              pricesCache[cacheKey] = parseFloat(price);
+              return parseFloat(price);
             }
           }
-          if (closest && closest.close) return parseFloat(closest.close);
         }
       }
     } catch { }
   }
-  // Fallback CoinGecko
-  if (!id) return null;
-  try {
-    // CoinGecko API: /coins/{id}/market_chart/range?vs_currency=usd&from=timestamp&to=timestamp
-    const ts = Math.floor(date.getTime() / 1000);
-    const from = ts - 60 * 60 * 3; // 3 horas antes
-    const to = ts + 60 * 60 * 3;   // 3 horas después
-    const res = await fetch(`${COINGECKO_API}/coins/${id}/market_chart/range?vs_currency=usd&from=${from}&to=${to}`);
-    const data = await res.json();
-    if (data && data.prices && data.prices.length) {
-      // Buscar el precio más cercano al timestamp
-      let minDiff = Infinity;
-      let closestPrice = null;
-      for (const [priceTs, price] of data.prices) {
-        const diff = Math.abs(priceTs - date.getTime());
-        if (diff < minDiff) {
-          minDiff = diff;
-          closestPrice = price;
+
+  // 2. CoinGecko como fallback para todos los demás tokens
+  // CORRECCIÓN: Usar el symbol en minúsculas si el ID no se mapeó
+  const coinGeckoId = id || symbol.toLowerCase();
+  if (coinGeckoId) {
+    try {
+      const res = await fetch(`${COINGECKO_API}/coins/${coinGeckoId}/market_chart/range?vs_currency=usd&from=${from}&to=${to}`);
+      const data = await res.json();
+      if (data && data.prices && data.prices.length) {
+        for (const [priceTs, p] of data.prices) {
+          const diff = Math.abs(priceTs - date.getTime());
+          if (diff < minDiff) {
+            minDiff = diff;
+            price = p;
+          }
+        }
+        if (price) {
+          pricesCache[cacheKey] = price;
+          return price;
         }
       }
-      // Si es USD0 y no hay precio, asumir 1
-      if ((symbol.toUpperCase() === 'USD0') && (!closestPrice || closestPrice === 0)) return 1;
-      return closestPrice;
-    }
-    // Si es USD0 y no hay precio, asumir 1
-    if (symbol.toUpperCase() === 'USD0') return 1;
-    return null;
-  } catch {
-    if (symbol.toUpperCase() === 'USD0') return 1;
-    return null;
+    } catch { }
   }
+
+
+  // 3. Si es USD0 y no hay precio, asumir 1
+  if (symbol.toUpperCase() === 'USD0') {
+    pricesCache[cacheKey] = 1;
+    return 1;
+  }
+
+  return null;
 }
 
 document.getElementById('btnFetchWallet').addEventListener('click', async () => {
@@ -397,32 +358,14 @@ document.getElementById('btnFetchWallet').addEventListener('click', async () => 
         change24h: null
       });
     }
-    // --- NUEVO: Mostrar posiciones DeFi ---
-    let defiPositions = [];
-    let defiTotal = 0;
-    try {
-      const defiRes = await fetch(`https://api.covalenthq.com/v1/1/address/${address}/staking_v2/?key=${COVALENT_API_KEY}`);
-      const defiJson = await defiRes.json();
-      if (defiJson.data && defiJson.data.items && defiJson.data.items.length) {
-        defiPositions = defiJson.data.items.map(pos => ({
-          protocol: pos.protocol_name,
-          pool: pos.pool_name || '',
-          token: pos.balance_token_symbol || '',
-          amount: pos.balance_token_balance || '',
-          usd: pos.balance_quote ? Number(pos.balance_quote) : 0
-        }));
-        defiTotal = defiPositions.reduce((acc, p) => acc + (p.usd || 0), 0);
-      }
-    } catch { }
-    // --- FIN NUEVO ---
     // Calcular total assets
     const assetsTotal = assets.reduce((acc, a) => acc + (a.total || 0), 0);
     // --- HTML ---
     let html = `<div class="wallet-dashboard" style="padding:18px 8px 10px 8px;">
       <div class="wallet-totals" style="margin-bottom:10px;">
         <div class="wallet-total-title">Total Worth</div>
-        <div class="wallet-total-usd">$${(assetsTotal + defiTotal).toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
-        <div class="wallet-total-sub" style="margin-bottom:6px;">Assets: $${assetsTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })} &nbsp; | &nbsp; DeFi: $${defiTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+        <div class="wallet-total-usd">$${assetsTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+        <div class="wallet-total-sub" style="margin-bottom:6px;">Assets: $${assetsTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })} &nbsp; | &nbsp; DeFi: $0</div>
       </div>
       <div class="wallet-assets-card" style="margin-bottom:10px;padding:10px 6px 8px 6px;">
         <div class="wallet-section-title" style="margin-bottom:4px;margin-top:0;">Assets</div>
@@ -453,15 +396,6 @@ document.getElementById('btnFetchWallet').addEventListener('click', async () => 
           </tbody>
         </table>
       </div>
-      ${defiPositions.length ? `<div class="wallet-defi-card" style="margin-bottom:10px;padding:10px 6px 8px 6px;">
-        <div class="wallet-section-title" style="margin-bottom:4px;margin-top:0;">DeFi</div>
-        <table class="wallet-defi-table">
-          <thead><tr><th>Protocol</th><th>Pool</th><th>Token</th><th>Amount</th><th>USD Value</th></tr></thead>
-          <tbody>
-            ${defiPositions.map(p => `<tr><td>${p.protocol}</td><td>${p.pool}</td><td>${p.token}</td><td>${p.amount}</td><td>${p.usd ? '$' + p.usd.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '-'}</td></tr>`).join('')}
-          </tbody>
-        </table>
-      </div>` : ''}
     </div>`;
     walletDataEl.innerHTML = html;
 
@@ -487,6 +421,7 @@ async function fetchCoinsList() {
 }
 fetchCoinsList();
 
+// CORRECCIÓN: Lógica de sugerencias de pares mejorada
 pairSearch.addEventListener('input', () => {
   const q = pairSearch.value.trim().toUpperCase();
   if (!q) {
@@ -521,13 +456,18 @@ function addTrackedPair(symbol) {
   if (!tracked.includes(symbol)) {
     tracked.push(symbol);
     localStorage.setItem('trackedPairs', JSON.stringify(tracked));
-    renderSingleTrackedPair(symbol);
+    renderTrackedPairs(); // CORRECCIÓN: Llama a la función que renderiza todo
   }
 }
 
-async function renderSingleTrackedPair(symbol) {
-  const price = await fetchPrice(symbol);
-  const stats = await fetch24hStats(symbol);
+function removeTrackedPair(symbol) {
+  tracked = tracked.filter(s => s !== symbol);
+  localStorage.setItem('trackedPairs', JSON.stringify(tracked));
+  renderTrackedPairs();
+}
+
+// CORRECCIÓN: Función auxiliar para crear el HTML de un par (reduce duplicación)
+function createPairHtml(symbol, price, stats) {
   const base = symbol.replace('USDT', '');
   let change = '';
   let changeClass = '';
@@ -541,25 +481,29 @@ async function renderSingleTrackedPair(symbol) {
   lastPrices[symbol] = price;
   const source = symbol === 'CTXCUSDT' ? 'HTX' : 'Binance';
   const sourceUrl = source === 'HTX' ? 'https://www.htx.com/' : 'https://www.binance.com/';
-  let infoHtml = `<div class=\"coin-info\">
-    <span class=\"coin-name\">${getCoinName(symbol)}</span>
-    <span class=\"coin-symbol\">${base}/USDT <a class=\"pair-source-link\" href=\"${sourceUrl}\" target=\"_blank\">${source}</a></span>
+  let infoHtml = `<div class="coin-info">
+    <span class="coin-name">${getCoinName(symbol)}</span>
+    <span class="coin-symbol">${base}/USDT <a class="pair-source-link" href="${sourceUrl}" target="_blank">${source}</a></span>
   </div>`;
-  const html = `<div class=\"tracked-pair\" data-symbol=\"${symbol}\">\n    ${infoHtml}\n    <span class=\"pair-price\" data-symbol=\"${symbol}\">${formatPrice(price)}</span>\n    <span class=\"pair-change ${changeClass}\" data-symbol=\"${symbol}\">${changeIcon}${change}</span>\n    <button class=\"delete-btn\" onclick=\"event.stopPropagation();window.removeTrackedPair && window.removeTrackedPair('${symbol}')\" title=\"Eliminar\">\n      <svg width=\"20\" height=\"20\" viewBox=\"0 0 20 20\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n        <path d=\"M5 6.5V15.5C5 16.3284 5.67157 17 6.5 17H13.5C14.3284 17 15 16.3284 15 15.5V6.5\" stroke=\"#aaa\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\n        <path d=\"M3 6.5H17\" stroke=\"#aaa\" stroke-width=\"1.5\" stroke-linecap=\"round\"/>\n        <path d=\"M8.33331 9.16667V13.3333\" stroke=\"#aaa\" stroke-width=\"1.5\" stroke-linecap=\"round\"/>\n        <path d=\"M11.6667 9.16667V13.3333\" stroke=\"#aaa\" stroke-width=\"1.5\" stroke-linecap=\"round\"/>\n        <path d=\"M7.5 6.5V4.5C7.5 3.94772 7.94772 3.5 8.5 3.5H11.5C12.0523 3.5 12.5 3.94772 12.5 4.5V6.5\" stroke=\"#aaa\" stroke-width=\"1.5\" stroke-linecap=\"round\"/>\n      </svg>\n    </button>\n  </div>`;
+  const html = `<div class="tracked-pair" data-symbol="${symbol}">
+    ${infoHtml}
+    <span class="pair-price" data-symbol="${symbol}">${formatPrice(price)}</span>
+    <span class="pair-change ${changeClass}" data-symbol="${symbol}">${changeIcon}${change}</span>
+    <button class="delete-btn" onclick="event.stopPropagation();window.removeTrackedPair && window.removeTrackedPair('${symbol}')" title="Eliminar">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M5 6.5V15.5C5 16.3284 5.67157 17 6.5 17H13.5C14.3284 17 15 16.3284 15 15.5V6.5" stroke="#aaa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M3 6.5H17" stroke="#aaa" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M8.33331 9.16667V13.3333" stroke="#aaa" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M11.6667 9.16667V13.3333" stroke="#aaa" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M7.5 6.5V4.5C7.5 3.94772 7.94772 3.5 8.5 3.5H11.5C12.0523 3.5 12.5 3.94772 12.5 4.5V6.5" stroke="#aaa" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>`;
   const temp = document.createElement('div');
   temp.innerHTML = html;
   const el = temp.firstElementChild;
-  trackedPairs.appendChild(el);
-  // Para acceso global al eliminar
-  window.removeTrackedPair = removeTrackedPair;
-  // Click para ver detalles
   el.onclick = () => showPairDetails(symbol);
-}
-
-function removeTrackedPair(symbol) {
-  tracked = tracked.filter(s => s !== symbol);
-  localStorage.setItem('trackedPairs', JSON.stringify(tracked));
-  renderTrackedPairs();
+  return el;
 }
 
 // Obtener datos de 24h de Binance
@@ -599,37 +543,14 @@ async function renderTrackedPairs() {
   for (const symbol of tracked) {
     const price = await fetchPrice(symbol);
     const stats = await fetch24hStats(symbol);
-    const base = symbol.replace('USDT', '');
-    let change = '';
-    let changeClass = '';
-    let changeIcon = '';
-    if (stats && stats.priceChangePercent !== undefined) {
-      const pct = parseFloat(stats.priceChangePercent);
-      change = pct.toFixed(2) + '%';
-      changeClass = pct > 0 ? 'positive' : (pct < 0 ? 'negative' : '');
-      changeIcon = pct > 0 ? '<span class="arrow-up" style="vertical-align:middle;">▲</span>' : (pct < 0 ? '<span class="arrow-down" style="vertical-align:middle;">▼</span>' : '');
-    }
-    lastPrices[symbol] = price;
-    const source = symbol === 'CTXCUSDT' ? 'HTX' : 'Binance';
-    const sourceUrl = source === 'HTX' ? 'https://www.htx.com/' : 'https://www.binance.com/';
-    let infoHtml = `<div class=\"coin-info\">
-      <span class=\"coin-name\">${getCoinName(symbol)}</span>
-      <span class=\"coin-symbol\">${base}/USDT <a class=\"pair-source-link\" href=\"${sourceUrl}\" target=\"_blank\">${source}</a></span>
-    </div>`;
-    const html = `<div class=\"tracked-pair\" data-symbol=\"${symbol}\">\n      ${infoHtml}\n      <span class=\"pair-price\" data-symbol=\"${symbol}\">${formatPrice(price)}</span>\n      <span class=\"pair-change ${changeClass}\" data-symbol=\"${symbol}\">${changeIcon}${change}</span>\n      <button class=\"delete-btn\" onclick=\"event.stopPropagation();window.removeTrackedPair && window.removeTrackedPair('${symbol}')\" title=\"Eliminar\">\n        <svg width=\"20\" height=\"20\" viewBox=\"0 0 20 20\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n          <path d=\"M5 6.5V15.5C5 16.3284 5.67157 17 6.5 17H13.5C14.3284 17 15 16.3284 15 15.5V6.5\" stroke=\"#aaa\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\n          <path d=\"M3 6.5H17\" stroke=\"#aaa\" stroke-width=\"1.5\" stroke-linecap=\"round\"/>\n          <path d=\"M8.33331 9.16667V13.3333\" stroke=\"#aaa\" stroke-width=\"1.5\" stroke-linecap=\"round\"/>\n          <path d=\"M11.6667 9.16667V13.3333\" stroke=\"#aaa\" stroke-width=\"1.5\" stroke-linecap=\"round\"/>\n          <path d=\"M7.5 6.5V4.5C7.5 3.94772 7.94772 3.5 8.5 3.5H11.5C12.0523 3.5 12.5 3.94772 12.5 4.5V6.5\" stroke=\"#aaa\" stroke-width=\"1.5\" stroke-linecap=\"round\"/>\n        </svg>\n      </button>\n    </div>`;
-    trackedPairs.innerHTML += html;
+    const el = createPairHtml(symbol, price, stats);
+    trackedPairs.appendChild(el);
   }
   // Para acceso global al eliminar
   window.removeTrackedPair = removeTrackedPair;
-  // Click para ver detalles
-  document.querySelectorAll('.tracked-pair').forEach(el => {
-    el.onclick = () => showPairDetails(el.dataset.symbol);
-  });
 }
 
-// --- HTX API para CTXCUSDT ---
-const HTX_API = 'https://api.huobi.pro';
-
+// Obtener precio de HTX/Binance
 async function fetchPrice(symbol) {
   if (symbol === 'CTXCUSDT') {
     try {
@@ -873,17 +794,9 @@ setInterval(async () => {
     const stats = await fetch24hStats(symbol);
     span.textContent = formatPrice(price);
     // Actualizar variación
-    const changeSpans = document.querySelectorAll(`.pair-change[data-symbol="${symbol}"]`);
-    if (changeSpans && stats && stats.priceChangePercent !== undefined) {
-      const pct = parseFloat(stats.priceChangePercent);
-      const change = pct.toFixed(2) + '%';
-      const changeClass = pct > 0 ? 'positive' : (pct < 0 ? 'negative' : '');
-      const changeIcon = pct > 0 ? '<span class="arrow-up" style="vertical-align:middle;">▲</span>' : (pct < 0 ? '<span class="arrow-down" style="vertical-align:middle;">▼</span>' : '');
-      changeSpans.forEach(changeSpan => {
-        changeSpan.innerHTML = `${changeIcon}${change}`;
-        changeSpan.className = `pair-change ${changeClass}`;
-      });
-    }
+    const el = createPairHtml(symbol, price, stats); // CORRECCIÓN: Usar la función auxiliar para regenerar el HTML
+    const oldEl = document.querySelector(`.tracked-pair[data-symbol="${symbol}"]`);
+    if (oldEl) oldEl.replaceWith(el);
   }
 }, 5000);
 
@@ -1030,7 +943,7 @@ intervalSelector.addEventListener('click', (e) => {
 document.addEventListener('DOMContentLoaded', () => {
   const ETH_API = 'https://api.etherscan.io/api';
   const ETH_KEY = 'F7F8ZYHRFCQU3CC3H8R15A5E3NN5GH1CU4';
-  let txList = [], offset = 0, priceMap = {};
+  let txList = [], offset = 0;
   let currentTxAddress = null; // Nueva variable global para la dirección
 
   // Agregar event listener para el botón de cierre
@@ -1041,11 +954,6 @@ document.addEventListener('DOMContentLoaded', () => {
       chartInstance = null;
     }
   });
-
-  async function initPrices() {
-    const prices = await fetch('https://api.binance.com/api/v3/ticker/price').then(r => r.json());
-    prices.forEach(p => priceMap[p.symbol] = +p.price);
-  }
 
   function fmt(n, d = 2) { return Number(n).toLocaleString('en', { minimumFractionDigits: d, maximumFractionDigits: d }); }
 
@@ -1110,78 +1018,14 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (sym === 'USUAL' || sym === 'USUALX' || sym === 'USD0') {
           priceUSD = await getTokenPriceUSD(sym);
         } else {
-          priceUSD = priceMap[sym + 'USDT'] || 0;
+          // No necesitamos priceMap si solo usamos CoinGecko
+          priceUSD = await getTokenPriceUSD(sym);
         }
         let usd = amt * (priceUSD || 0);
         // Obtener precio histórico y detalles
         const txDateObj = new Date(tx.timeStamp * 1000);
-        let priceHist = null;
+        let priceHist = await getHistoricalTokenPriceUSD(sym, txDateObj); // CORRECCIÓN: Usar la función optimizada
         let lowPrec = "";
-        let minDiff = Infinity;
-        let triedCoinStats = false;
-        if (sym === 'USUALX' || sym === 'USD0') {
-          triedCoinStats = true;
-          try {
-            const coinId = sym === 'USUALX' ? 'usualx' : 'usd0';
-            const res = await fetch(`https://api.coinstats.app/public/v1/charts?period=all&coinId=${coinId}`);
-            const data = await res.json();
-            if (data && data.chart && data.chart.length) {
-              let closest = null;
-              let closestTs = null;
-              const txTs = txDateObj.getTime();
-              for (const [priceTs, price] of data.chart) {
-                const priceTsMs = priceTs * 1000;
-                const diff = Math.abs(priceTsMs - txTs);
-                if (diff < minDiff) {
-                  minDiff = diff;
-                  closest = price;
-                  closestTs = priceTsMs;
-                }
-              }
-              if (closest && closest > 0) priceHist = parseFloat(closest);
-              if (minDiff > 24 * 60 * 60 * 1000) {
-                lowPrec = "<span title='El precio histórico puede no ser preciso (no es del mismo día)' style='color:#e7c000;font-size:1em;margin-left:4px;'>⚠️</span>";
-              }
-            }
-          } catch { }
-        }
-        if ((!priceHist || priceHist === 0) && (sym === 'USUALX' || sym === 'USD0')) {
-          try {
-            const custom = customTokens.find(t => t.symbol === sym);
-            if (custom) {
-              const tokenAddress = custom.address;
-              const pairRes = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${tokenAddress}`);
-              const pairData = await pairRes.json();
-              const pair = (pairData.pairs || []).find(p => p.baseToken.address.toLowerCase() === tokenAddress.toLowerCase() && p.quoteToken.symbol === 'USDT' && p.chainId === 'ethereum');
-              if (pair && pair.pairAddress) {
-                const ts = Math.floor(txDateObj.getTime() / 1000);
-                const from = ts - 60 * 60 * 24; // 24h antes
-                const to = ts + 60 * 60 * 24;   // 24h después
-                const candlesRes = await fetch(`https://api.dexscreener.com/latest/dex/pairs/ethereum/${pair.pairAddress}/candles?interval=1h&from=${from}&to=${to}`);
-                const candlesData = await candlesRes.json();
-                if (candlesData && candlesData.candles && candlesData.candles.length) {
-                  let minDiffDex = Infinity;
-                  let closestDex = null;
-                  for (const candle of candlesData.candles) {
-                    const diff = Math.abs(candle.timestamp * 1000 - txDateObj.getTime());
-                    if (diff < minDiffDex) {
-                      minDiffDex = diff;
-                      closestDex = candle;
-                    }
-                  }
-                  if (closestDex && closestDex.close) priceHist = parseFloat(closestDex.close);
-                  if (minDiffDex > 24 * 60 * 60 * 1000) {
-                    lowPrec = "<span title='El precio histórico puede no ser preciso (no es del mismo día)' style='color:#e7c000;font-size:1em;margin-left:4px;'>⚠️</span>";
-                  }
-                }
-              }
-            }
-          } catch { }
-        }
-        if (!priceHist || priceHist === 0) {
-          let fallbackHist = await getHistoricalTokenPriceUSD(sym, txDateObj, true); // true = forzar fallback, evita CoinStats
-          if (fallbackHist && fallbackHist > 0) priceHist = fallbackHist;
-        }
         let noData = false;
         if (!priceHist || priceHist === 0) {
           noData = true;
@@ -1192,7 +1036,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let pl = usd - usdHist;
         let plPct = usdHist ? (pl / usdHist) * 100 : 0;
         let plColor = pl > 0 ? '#1ecb81' : (pl < 0 ? '#e74c3c' : '#aaa');
-        let plText = `<span class='tx-pl' style='color:${plColor};font-weight:600;'>${pl >= 0 ? '+' : ''}${pl.toLocaleString(undefined, { maximumFractionDigits: 2 })} (${plPct >= 0 ? '+' : ''}${plPct.toFixed(2)}%)</span>`;
         // Mostrar valor histórico debajo de cantidad
         let amountDetail = noData
           ? `<div class='tx-detail' style='color:#e74c3c;'>Sin datos históricos</div>`
@@ -1221,7 +1064,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Nueva función para cargar transacciones por dirección
   async function fetchAndShowTransactions(address) {
-    await initPrices();
+    // await initPrices(); // Eliminado ya que getTokenPriceUSD ya no usa priceMap
     offset = 0; txList = [];
     document.getElementById('txBody').innerHTML = '';
     currentTxAddress = address;
