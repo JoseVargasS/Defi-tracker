@@ -1,20 +1,19 @@
 body {
   background: #111114;
   color: #f4f4f4;
-  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif;
   margin: 0;
   min-height: 100vh;
   font-size: 1rem;
   line-height: 1.5;
-  background-image: url('data:image/svg+xml;utf8,<svg width="100%25" height="100%25" viewBox="0 0 1200 800" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0 400 Q300 300 600 400 T1200 400" stroke="%23222222" stroke-width="2" fill="none"/><path d="M0 500 Q300 600 600 500 T1200 500" stroke="%23222222" stroke-width="2" fill="none"/><path d="M0 600 Q300 500 600 600 T1200 600" stroke="%23222222" stroke-width="2" fill="none"/><path d="M0 700 Q300 800 600 700 T1200 700" stroke="%23222222" stroke-width="2" fill="none"/><path d="M0 300 Q300 200 600 300 T1200 300" stroke="%23222222" stroke-width="2" fill="none"/><path d="M0 200 Q300 100 600 200 T1200 200" stroke="%23222222" stroke-width="2" fill="none"/></svg>');
   background-size: cover;
   background-repeat: no-repeat;
   background-attachment: fixed;
 }
 
 #app {
-  max-width: 100%;
-  width: 100%;
+  /* max-width: 100%;
+  width: 100%; */
   margin: 0;
   background: #181a20;
   border-radius: 0;
@@ -24,16 +23,35 @@ body {
   overflow-x: hidden;
 }
 
+header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.main-logo-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: center;
+}
+
+.main-logo-title h1 {
+  margin: 0;
+}
+
 header h1 {
   font-size: 2.2rem;
   font-weight: 600;
   margin: 0 0 24px 0;
   color: #f4f4f4;
   letter-spacing: -1px;
+  text-align: center;
 }
 
-section {
-  margin-bottom: 32px;
+section,
+#eth-transactions-section {
+  margin-bottom: 48px;
 }
 
 h2 {
@@ -59,57 +77,19 @@ footer a {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  gap: clamp(16px, 3vw, 32px);
+  flex-wrap: nowrap;
+  gap: 48px;
   width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 16px;
   box-sizing: border-box;
+  margin: 0 auto;
+  max-width: 1600px;
+  padding: 16px;
 }
 
 .main-grid > * {
-  flex: 1;
-  min-width: 320px;
-  max-width: none;
-  word-wrap: break-word;
+  margin-bottom: 48px;
+  flex: 0 1 380px;
+  max-width: 420px;
+  min-width: 300px;
   box-sizing: border-box;
-}
-
-.main-grid > #eth-transactions-section {
-  flex: 1.2;
-  min-width: 350px;
-  max-width: none;
-  word-wrap: break-word;
-  box-sizing: border-box;
-}
-
-/* Espaciado específico para la sección de transacciones */
-#eth-transactions-section {
-  margin: 0 clamp(8px, 2vw, 16px);
-}
-
-.main-logo-title {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  margin-bottom: 10px;
-}
-
-.main-logo {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 2px 8px 0 #00000022;
-  object-fit: contain;
-}
-
-.main-title {
-  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
-  font-size: 1.25rem;
-  font-weight: 900;
-  color: #45b26b;
-  letter-spacing: -1px;
-  margin: 0;
 }
