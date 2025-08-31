@@ -17,33 +17,24 @@ input[type="text"] {
   font-size: 1rem;
   outline: none;
   flex: 1;
-  transition: border 0.2s, box-shadow 0.2s;
+  transition: border 0.2s;
 }
 
 input[type="text"]:focus {
   border: 1.5px solid #45b26b;
-  box-shadow: 0 0 0 2px #45b26b33;
 }
 
-button, .delete-btn, #btnFetchWallet {
-  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+button,
+.delete-btn,
+#btnFetchWallet {
   font-weight: 700;
-  background: linear-gradient(90deg, #45b26b 0%, #3772ff 100%);
   color: #fff;
   border: none;
   border-radius: 10px;
   padding: 10px 18px;
   font-size: 1rem;
   cursor: pointer;
-  transition: background 0.2s, box-shadow 0.2s, color 0.2s;
-  box-shadow: 0 2px 8px 0 #00000022;
   outline: none;
-}
-
-button:hover, .delete-btn:hover, #btnFetchWallet:hover {
-  background: linear-gradient(90deg, #3772ff 0%, #45b26b 100%);
-  color: #fff;
-  box-shadow: 0 4px 16px 0 #3772ff44;
 }
 
 #pair-suggestions {
@@ -105,15 +96,8 @@ button:hover, .delete-btn:hover, #btnFetchWallet:hover {
   border: 1.5px solid #45b26b;
 }
 
-.wallet-saved-group {
-  display: flex;
-  align-items: center;
-  margin-bottom: 10px;
-  gap: 8px;
-}
-
 .wallet-saved-select {
-  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif;
   font-size: 0.97rem;
   border-radius: 8px;
   border: 1.5px solid #353945;
