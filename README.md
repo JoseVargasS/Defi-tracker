@@ -68,14 +68,11 @@ Defi-tracker/
 │  ├─ app.js         # entrada principal y lógica UI
 │  ├─ utils.js       # utilidades (fetch wrapper, formateo, debounce)
 │  ├─ prices.js      # consultas a APIs de precios
-│  ├─ wallet.js      # manejo de wallets y localStorage
-│  └─ config.example.js # ejemplo de configuración
+│  └─ wallet.js      # manejo de wallets y localStorage
 ├─ index.html        # página principal
 ├─ styles.css        # estilos globales
 └─ README.md         # este archivo
 ```
-
-> Ajusta la estructura si tus archivos difieren.
 
 ---
 
