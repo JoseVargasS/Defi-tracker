@@ -28,7 +28,10 @@ export async function makeRequest(url, options = {}) {
     const data = await res.json().catch(() => null);
     return data;
   } catch (err) {
-    console.error('makeRequest error', url, err);
+    // Only log errors that aren't 400 (Bad Request) for unknown tokens
+    if (!err.message || !err.message.includes('HTTP 400')) {
+      console.error('makeRequest error', url, err);
+    }
     throw err;
   }
 }

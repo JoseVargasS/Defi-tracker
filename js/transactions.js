@@ -263,8 +263,8 @@ export async function fetchAndShowTransactions(address) {
     // Hacemos ambas llamadas en paralelo:
     //  - tokentx: ERC20 token transfers
     //  - txlist: normal transactions (incluye transfers de ETH)
-    const tokentxUrl = `${ETH_API}?module=account&action=tokentx&address=${address}&sort=desc&apikey=${ETH_KEY}`;
-    const txlistUrl = `${ETH_API}?module=account&action=txlist&address=${address}&sort=desc&apikey=${ETH_KEY}`;
+    const tokentxUrl = `${ETH_API}?chainid=1&module=account&action=tokentx&address=${address}&sort=desc&apikey=${ETH_KEY}`;
+    const txlistUrl = `${ETH_API}?chainid=1&module=account&action=txlist&address=${address}&sort=desc&apikey=${ETH_KEY}`;
 
     const [r1, r2] = await Promise.allSettled([makeRequest(tokentxUrl), makeRequest(txlistUrl)]);
 

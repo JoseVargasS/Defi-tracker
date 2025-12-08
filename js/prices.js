@@ -34,11 +34,18 @@ export async function getTokenPriceUSD(symbol) {
         if (r2.id) state.coinLookupCache[symbol.toUpperCase()] = r2.id;
         return r2.price;
       }
-    } catch (e) { /* ignore */ }
+    } catch (e) {
+      // Silently ignore 400 errors for unknown tokens
+    }
 
+    // Cache null result to avoid repeated failed requests
+    state.pricesCache[key] = null;
     return null;
   } catch (err) {
-    console.error('getTokenPriceUSD error', symbol, err);
+    // Only log if it's not a 400 error (unknown token)
+    if (err.message && !err.message.includes('400')) {
+      console.warn('getTokenPriceUSD error', symbol, err.message);
+    }
     return null;
   }
 }
