@@ -219,6 +219,32 @@ export async function renderCandlestick(symbol, interval) {
       console.error('Canvas element not found!');
       return;
     }
+
+    // INTENTAR UPDATE SIN RE-RENDER (Avoid flickering)
+    if (state.chartInstance && state.chartInstance.canvas === candlestickChart && state.chartInstance._symbol === symbol && state.chartInstance._interval === interval) {
+      try {
+        let chartData = [];
+        if (symbol === 'CTXCUSDT') {
+          const data = await fetchHTXCandles(symbol, interval);
+          const start = Math.max(0, data.length - state.chartZoom);
+          chartData = data.slice(start).map(d => ({ x: d.id * 1000, o: d.open, h: d.high, l: d.low, c: d.close }));
+        } else {
+          const res = await fetchKlines(symbol, interval);
+          const data = Array.isArray(res) ? res : (res || []);
+          const start = Math.max(0, data.length - state.chartZoom);
+          chartData = data.slice(start).map(d => ({ x: d[0], o: parseFloat(d[1]), h: parseFloat(d[2]), l: parseFloat(d[3]), c: parseFloat(d[4]) }));
+        }
+
+        if (state.chartInstance.data.datasets[0]) {
+          state.chartInstance.data.datasets[0].data = chartData;
+          state.chartInstance.update('none');
+          return;
+        }
+      } catch (err) {
+        console.warn('Smart update error', err);
+      }
+    }
+
     // destruir chart previo
     try {
       const existing = Chart.getChart(candlestickChart);
@@ -256,6 +282,10 @@ export async function renderCandlestick(symbol, interval) {
         plugins: [crosshairPlugin]
       });
 
+      // Guardar símbolo e intervalo en el chart instance para validación
+      state.chartInstance._symbol = symbol;
+      state.chartInstance._interval = interval;
+
       // Zoom & pan handlers (igual)
       candlestickChart.onwheel = (e) => {
         e.preventDefault();
@@ -284,7 +314,7 @@ export async function renderCandlestick(symbol, interval) {
       return;
     }
 
-    // Binance klines via fetchKlines
+    // Binance klines via fetchKlines (creación inicial)
     const res = await fetchKlines(symbol, interval);
     const data = Array.isArray(res) ? res : (res || []);
     let start = Math.max(0, data.length - state.chartZoom);
@@ -306,6 +336,9 @@ export async function renderCandlestick(symbol, interval) {
       },
       plugins: [crosshairPlugin]
     });
+
+    state.chartInstance._symbol = symbol;
+    state.chartInstance._interval = interval;
 
     // wheel/pan (igual)
     candlestickChart.onwheel = (e) => {
@@ -338,37 +371,83 @@ export async function renderCandlestick(symbol, interval) {
   }
 }
 
-export async function showPairDetails(symbol) {
-  const pairDetails = document.getElementById('pair-details');
+export function updatePairUI(symbol, price, stats) {
   const pairTitle = document.getElementById('pair-title');
-  const candlestickChart = document.getElementById('candlestick-chart');
-  if (!pairDetails || !pairTitle || !candlestickChart) return;
+  if (!pairTitle) return;
 
-  state.currentPair = symbol;
-  pairDetails.classList.remove('hidden');
-  const price = await fetchPrice(symbol);
-  const stats = await fetch24hStats(symbol);
   const base = symbol.replace('USDT', '');
   const change = parseFloat(stats.priceChange || 0);
   const changePct = parseFloat(stats.priceChangePercent || 0);
   const changeClass = change > 0 ? 'positive' : (change < 0 ? 'negative' : '');
   pairTitle.innerHTML = `${base}/USDT <span>$${formatPrice(price)}</span> <span class="${changeClass}">${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%</span>`;
 
-  const oldStats = document.querySelector('.pair-stats');
-  if (oldStats) oldStats.remove();
   const high = parseFloat(stats.highPrice || 0);
   const low = parseFloat(stats.lowPrice || 0);
   const volBase = parseFloat(stats.volume || 0);
   const volUSDT = parseFloat(stats.quoteVolume || 0);
-  let statsHtml = `
-    <div class="pair-stats">
+
+  let statsContainer = document.querySelector('.pair-stats');
+  if (!statsContainer) {
+    // Crear contenedor si no existe
+    statsContainer = document.createElement('div');
+    statsContainer.className = 'pair-stats';
+    pairTitle.insertAdjacentElement('afterend', statsContainer);
+  }
+
+  statsContainer.innerHTML = `
       <div><span class="label">24h Change</span> <span class="pair-change ${changeClass}">${change >= 0 ? '+' : ''}${change.toFixed(4)} ${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%</span></div>
       <div><span class="label">24h High</span> <span>${high}</span></div>
       <div><span class="label">24h Low</span> <span>${low}</span></div>
       <div><span class="label">24h Volume (${base})</span> <span>${volBase?.toLocaleString?.() ?? '-'}</span></div>
       <div><span class="label">24h Volume (USDT)</span> <span>${volUSDT?.toLocaleString?.() ?? '-'}</span></div>
-    </div>
-  `;
-  pairTitle.insertAdjacentHTML('afterend', statsHtml);
+    `;
+}
+
+export async function refreshPairDetails(symbol) {
+  if (state.currentPair !== symbol) return; // Evitar updates si cambió el par
+  const price = await fetchPrice(symbol);
+  const stats = await fetch24hStats(symbol);
+  updatePairUI(symbol, price, stats);
   renderCandlestick(symbol, state.currentInterval);
+}
+
+export async function showPairDetails(symbol) {
+  const pairDetails = document.getElementById('pair-details');
+  const pairTitle = document.getElementById('pair-title');
+  const candlestickChart = document.getElementById('candlestick-chart');
+
+  if (!pairDetails || !pairTitle || !candlestickChart) return;
+
+  // Limpiar intervalo previo si existe
+  if (state.detailInterval) {
+    clearInterval(state.detailInterval);
+    state.detailInterval = null;
+  }
+
+  state.currentPair = symbol;
+  pairDetails.classList.remove('hidden');
+
+  // Carga inicial
+  await refreshPairDetails(symbol);
+
+  // Iniciar polling de 5 segundos
+  state.detailInterval = setInterval(() => {
+    refreshPairDetails(symbol);
+  }, 5000);
+
+  // Limpiar al cerrar details
+  const closeBtn = document.getElementById('close-details');
+  if (closeBtn) {
+    // Remover listeners previos para evitar duplicados (simple approach)
+    const newBtn = closeBtn.cloneNode(true);
+    closeBtn.parentNode.replaceChild(newBtn, closeBtn);
+    newBtn.onclick = () => {
+      if (state.detailInterval) {
+        clearInterval(state.detailInterval);
+        state.detailInterval = null;
+      }
+      pairDetails.classList.add('hidden');
+      state.currentPair = null;
+    };
+  }
 }

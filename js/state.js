@@ -11,6 +11,7 @@ export const state = {
   historicalChartCache: {},
   coinLookupCache: {},
   candleRenderLock: false,
+  detailInterval: null,
   coinsList: []
 };
 
