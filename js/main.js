@@ -1,6 +1,5 @@
 // js/main.js
 //Importa todo y hace el DOMContentLoaded (reemplaza el app.js original).
-// js/main.js
 import { state } from './state.js';
 import { formatPrice } from './utils.js';
 import { fetchCoinsList, fetchPrice, fetch24hStats } from './exchange.js';
@@ -9,6 +8,15 @@ import { renderSavedWallets, saveWallet, fetchAndRenderWallet, getSavedWallets }
 import { fetchAndShowTransactions, loadTx } from './transactions.js';
 
 document.addEventListener('DOMContentLoaded', async function () {
+
+  // Suppress "User rejected the request" errors from external wallet extensions
+  window.addEventListener('unhandledrejection', function (event) {
+    if (event.reason && (event.reason.code === 4001 || (event.reason.message && event.reason.message.includes('User rejected')))) {
+      event.preventDefault();
+      console.log('Aviso: Se ignoró un error de conexión de billetera externa (esperado en dApps sin conexión Web3).');
+    }
+  });
+
   // Restaurar tracked pairs
   if (localStorage.getItem('trackedPairs')) {
     try { state.tracked = JSON.parse(localStorage.getItem('trackedPairs')) || []; } catch { state.tracked = []; }
@@ -16,8 +24,15 @@ document.addEventListener('DOMContentLoaded', async function () {
 
   // Chart.js defaults (si Chart está cargado)
   if (window.Chart && window.Chart.defaults && window.Chart.defaults.elements && window.Chart.defaults.elements.candlestick) {
-    window.Chart.defaults.elements.candlestick.color = { up: '#1ECB81', down: '#E74C4C', unchanged: '#F4F4F4' };
-    window.Chart.defaults.elements.candlestick.borderColor = { up: '#1ECB81', down: '#E74C4C', unchanged: '#F4F4F4' };
+    const upColor = '#0ecb81';
+    const downColor = '#f6465d';
+    const neutralColor = '#999999';
+
+    // Forzar defaults globales para evitar herencias de estilos viejos
+    window.Chart.defaults.elements.candlestick.color = { up: upColor, down: downColor, unchanged: neutralColor };
+    window.Chart.defaults.elements.candlestick.borderColor = { up: upColor, down: downColor, unchanged: neutralColor };
+    window.Chart.defaults.elements.candlestick.wickColor = { up: upColor, down: downColor, unchanged: neutralColor };
+    window.Chart.defaults.elements.candlestick.borderWidth = 1;
   }
 
   const pairSearch = document.getElementById('pair-search');
@@ -123,11 +138,22 @@ document.addEventListener('DOMContentLoaded', async function () {
         const symbol = span.getAttribute('data-symbol');
         const price = await fetchPrice(symbol);
         const stats = await fetch24hStats(symbol);
+
+        // solo actualizar texto y clases, NO reemplazar el nodo para no perder listeners o estado
         span.textContent = formatPrice(price);
-        // actualizar elemento visual completo
-        const el = createPairHtml(symbol, price, stats);
-        const oldEl = document.querySelector(`.tracked-pair[data-symbol="${symbol}"]`);
-        if (oldEl) oldEl.replaceWith(el);
+
+        if (stats && stats.priceChangePercent !== undefined) {
+          const pct = parseFloat(stats.priceChangePercent);
+          const change = pct.toFixed(2) + '%';
+          const changeClass = pct > 0 ? 'positive' : (pct < 0 ? 'negative' : '');
+          const changeIcon = pct > 0 ? '<span class="arrow">▲</span>' : (pct < 0 ? '<span class="arrow">▼</span>' : '');
+
+          const changeSpan = document.querySelector(`.pair-change[data-symbol="${symbol}"]`);
+          if (changeSpan) {
+            changeSpan.className = `pair-change ${changeClass}`;
+            changeSpan.innerHTML = `${changeIcon}${change}`;
+          }
+        }
       }
     } catch (e) {
       console.error('Auto-update error', e);

@@ -6,7 +6,12 @@ import { state } from './state.js';
 export async function getTokenPriceUSD(symbol) {
   try {
     if (!symbol) return null;
-    const key = `price-${symbol.toUpperCase()}`;
+    // Sanitize: remove non-alphanumeric chars (soft trim) just for this check
+    const s = symbol.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    if (s === 'ERC20') return null;
+
+    // For cache key use the trimmed original to avoid collision if needed, but 's' is safer
+    const key = `price-${s}`;
     if (state.pricesCache[key]) return state.pricesCache[key];
 
     const url = `${COINSTATS_API}/coins?symbol=${encodeURIComponent(symbol)}&currency=USD`;
@@ -53,7 +58,11 @@ export async function getTokenPriceUSD(symbol) {
 export async function getHistoricalTokenPriceUSD(symbol, date) {
   try {
     if (!symbol || !date) return null;
-    const cacheKey = `${symbol.toUpperCase()}-${Math.floor(date.getTime() / 1000 / 3600)}`;
+    // Sanitize
+    const s = symbol.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    if (s === 'ERC20') return null;
+
+    const cacheKey = `${s}-${Math.floor(date.getTime() / 1000 / 3600)}`;
     if (state.pricesCache[cacheKey]) return state.pricesCache[cacheKey];
 
     let coinId = state.coinLookupCache[symbol.toUpperCase()];
@@ -61,7 +70,7 @@ export async function getHistoricalTokenPriceUSD(symbol, date) {
       try {
         const url = `${COINSTATS_API}/coins?symbol=${encodeURIComponent(symbol)}&currency=USD`;
         const res = await makeRequest(url);
-        if (r && Array.isArray(res.result) && r.result.length) {
+        if (res && Array.isArray(res.result) && res.result.length) {
           const coin = res.result.find(c => (c.symbol || '').toUpperCase() === symbol.toUpperCase()) || res.result[0];
           if (coin && coin.id) {
             coinId = coin.id;

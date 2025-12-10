@@ -195,18 +195,70 @@ export async function renderTrackedPairs() {
   window.removeTrackedPair = removeTrackedPair;
 }
 
-export function addTrackedPair(symbol) {
+export async function addTrackedPair(symbol) {
   if (!symbol) return;
   if (!state.tracked.includes(symbol)) {
     state.tracked.push(symbol);
     localStorage.setItem('trackedPairs', JSON.stringify(state.tracked));
-    renderTrackedPairs();
+
+    // Optimización: Agregar solo el nuevo elemento al DOM sin recargar todo
+    const trackedPairs = document.getElementById('tracked-pairs');
+    if (trackedPairs) {
+      // Mostrar placeholder o loading si se desea, o esperar fetch
+      try {
+        const price = await fetchPrice(symbol);
+        const stats = await fetch24hStats(symbol);
+        const el = createPairHtml(symbol, price, stats);
+        trackedPairs.appendChild(el);
+      } catch (e) {
+        console.error('Error adding pair UI:', e);
+      }
+    } else {
+      // Fallback si no existe el contenedor (raro)
+      renderTrackedPairs();
+    }
   }
 }
+
 export function removeTrackedPair(symbol) {
   state.tracked = state.tracked.filter(s => s !== symbol);
   localStorage.setItem('trackedPairs', JSON.stringify(state.tracked));
-  renderTrackedPairs();
+
+  // Optimización: Eliminar solo el elemento del DOM
+  const el = document.querySelector(`.tracked-pair[data-symbol="${symbol}"]`);
+  if (el) {
+    el.remove();
+  } else {
+    // Fallback por si acaso
+    renderTrackedPairs();
+  }
+}
+
+// Helper: Calculate Bollinger Bands
+function calculateBollingerBands(data, period = 20, multiplier = 2) {
+  const bands = { upper: [], middle: [], lower: [] };
+
+  for (let i = 0; i < data.length; i++) {
+    if (i < period - 1) {
+      bands.upper.push({ x: data[i].x, y: null });
+      bands.middle.push({ x: data[i].x, y: null });
+      bands.lower.push({ x: data[i].x, y: null });
+      continue;
+    }
+
+    const slice = data.slice(i - period + 1, i + 1);
+    const sum = slice.reduce((acc, d) => acc + d.c, 0);
+    const sma = sum / period;
+
+    const squaredDiffs = slice.map(d => Math.pow(d.c - sma, 2));
+    const variance = squaredDiffs.reduce((acc, val) => acc + val, 0) / period;
+    const stdDev = Math.sqrt(variance);
+
+    bands.upper.push({ x: data[i].x, y: sma + (stdDev * multiplier) });
+    bands.middle.push({ x: data[i].x, y: sma });
+    bands.lower.push({ x: data[i].x, y: sma - (stdDev * multiplier) });
+  }
+  return bands;
 }
 
 // Candlestick renderer (adaptado para usar fetchKlines)
@@ -220,23 +272,52 @@ export async function renderCandlestick(symbol, interval) {
       return;
     }
 
+    let rawData = [];
+    if (symbol === 'CTXCUSDT') {
+      const htxData = await fetchHTXCandles(symbol, interval);
+      rawData = htxData.map(d => ({ x: d.id * 1000, o: d.open, h: d.high, l: d.low, c: d.close }));
+    } else {
+      const binData = await fetchKlines(symbol, interval);
+      rawData = (Array.isArray(binData) ? binData : []).map(d => ({ x: d[0], o: parseFloat(d[1]), h: parseFloat(d[2]), l: parseFloat(d[3]), c: parseFloat(d[4]) }));
+    }
+
+    const totalDataPoints = rawData.length;
+    // Recalcular zoom/start si es necesario
+    let start = Math.max(0, totalDataPoints - state.chartZoom);
+    let end = totalDataPoints;
+
+    // Calcular bandas para TODO el rawData para mantener consistencia
+    const bandsFull = calculateBollingerBands(rawData);
+
+    // Filter visible data
+    const visibleData = rawData.slice(start, end);
+    const visibleBands = {
+      upper: bandsFull.upper.slice(start, end),
+      middle: bandsFull.middle.slice(start, end),
+      lower: bandsFull.lower.slice(start, end)
+    };
+
     // INTENTAR UPDATE SIN RE-RENDER (Avoid flickering)
     if (state.chartInstance && state.chartInstance.canvas === candlestickChart && state.chartInstance._symbol === symbol && state.chartInstance._interval === interval) {
       try {
-        let chartData = [];
-        if (symbol === 'CTXCUSDT') {
-          const data = await fetchHTXCandles(symbol, interval);
-          const start = Math.max(0, data.length - state.chartZoom);
-          chartData = data.slice(start).map(d => ({ x: d.id * 1000, o: d.open, h: d.high, l: d.low, c: d.close }));
-        } else {
-          const res = await fetchKlines(symbol, interval);
-          const data = Array.isArray(res) ? res : (res || []);
-          const start = Math.max(0, data.length - state.chartZoom);
-          chartData = data.slice(start).map(d => ({ x: d[0], o: parseFloat(d[1]), h: parseFloat(d[2]), l: parseFloat(d[3]), c: parseFloat(d[4]) }));
-        }
-
         if (state.chartInstance.data.datasets[0]) {
-          state.chartInstance.data.datasets[0].data = chartData;
+          const ds = state.chartInstance.data.datasets[0];
+          ds.data = visibleData;
+
+          // Re-force colors on update to ensure solidity
+          const upC = '#0ecb81';
+          const downC = '#f6465d';
+          const neutC = '#999999';
+          ds.color = { up: upC, down: downC, unchanged: neutC };
+          ds.borderColor = { up: upC, down: downC, unchanged: neutC };
+          ds.wickColor = { up: upC, down: downC, unchanged: neutC };
+          ds.backgroundColor = { up: upC, down: downC, unchanged: neutC };
+
+          // Asumimos datasets 1, 2, 3 son las bandas
+          if (state.chartInstance.data.datasets[1]) state.chartInstance.data.datasets[1].data = visibleBands.upper;
+          if (state.chartInstance.data.datasets[2]) state.chartInstance.data.datasets[2].data = visibleBands.lower;
+          if (state.chartInstance.data.datasets[3]) state.chartInstance.data.datasets[3].data = visibleBands.middle;
+
           state.chartInstance.update('none');
           return;
         }
@@ -260,69 +341,53 @@ export async function renderCandlestick(symbol, interval) {
     const ctx = candlestickChart.getContext('2d');
     if (!ctx) { console.error('Could not get canvas context!'); return; }
 
-    if (symbol === 'CTXCUSDT') {
-      const data = await fetchHTXCandles(symbol, interval);
-      let start = Math.max(0, data.length - state.chartZoom);
-      let end = data.length;
-      const chartData = data.slice(start, end).map(d => ({ x: d.id * 1000, o: d.open, h: d.high, l: d.low, c: d.close }));
-      state.chartInstance = new Chart(ctx, {
-        type: 'candlestick',
-        data: { datasets: [{ label: symbol, data: chartData, upColor: '#1ECB81', downColor: '#E74C4C', borderColor: '#181A20', borderWidth: 1.5, wickColor: { up: '#1ECB81', down: '#E74C4C', unchanged: '#F4F4F4' }, wickWidth: 2 }] },
-        options: {
-          plugins: { legend: { display: false }, tooltip: { enabled: false } },
-          scales: {
-            x: { type: 'time', time: { unit: (interval === '1d' || interval === '3d') ? 'day' : ((interval === '4h' || interval === '1h') ? 'hour' : 'minute') }, grid: { color: '#353945' }, ticks: { color: '#F4F4F4' } },
-            y: { grid: { color: '#353945' }, ticks: { color: '#F4F4F4' } }
-          },
-          responsive: true,
-          maintainAspectRatio: false,
-          aspectRatio: 2,
-          animation: false
-        },
-        plugins: [crosshairPlugin]
-      });
-
-      // Guardar símbolo e intervalo en el chart instance para validación
-      state.chartInstance._symbol = symbol;
-      state.chartInstance._interval = interval;
-
-      // Zoom & pan handlers (igual)
-      candlestickChart.onwheel = (e) => {
-        e.preventDefault();
-        if (e.deltaY < 0) state.chartZoom = Math.max(10, state.chartZoom - 10);
-        else state.chartZoom = Math.min(state.chartZoom + 10, data.length);
-        renderCandlestick(symbol, interval);
-      };
-      let isPanning = false, panStartX = 0, panStartIndex = start;
-      candlestickChart.onmousedown = (e) => { isPanning = true; panStartX = e.clientX; panStartIndex = start; };
-      window.onmouseup = () => { isPanning = false; };
-      candlestickChart.onmousemove = (e) => {
-        if (isPanning) {
-          const dx = e.clientX - panStartX;
-          const moveBars = Math.round(dx / 3);
-          let newStart = panStartIndex - moveBars;
-          newStart = Math.max(0, Math.min(data.length - state.chartZoom, newStart));
-          start = newStart; end = start + state.chartZoom;
-          if (end > data.length) { end = data.length; start = Math.max(0, end - state.chartZoom); }
-          const newChartData = data.slice(start, end).map(d => ({ x: d.id * 1000, o: d.open, h: d.high, l: d.low, c: d.close }));
-          if (state.chartInstance && state.chartInstance.data && state.chartInstance.data.datasets && state.chartInstance.data.datasets[0]) {
-            state.chartInstance.data.datasets[0].data = newChartData;
-            state.chartInstance.update('none');
-          }
-        }
-      };
-      return;
-    }
-
-    // Binance klines via fetchKlines (creación inicial)
-    const res = await fetchKlines(symbol, interval);
-    const data = Array.isArray(res) ? res : (res || []);
-    let start = Math.max(0, data.length - state.chartZoom);
-    let end = data.length;
-    const chartData = data.slice(start, end).map(d => ({ x: d[0], o: parseFloat(d[1]), h: parseFloat(d[2]), l: parseFloat(d[3]), c: parseFloat(d[4]) }));
     state.chartInstance = new Chart(ctx, {
       type: 'candlestick',
-      data: { datasets: [{ label: symbol, data: chartData, upColor: '#1ECB81', downColor: '#E74C4C', borderColor: '#181A20', borderWidth: 1.5, wickColor: { up: '#1ECB81', down: '#E74C4C', unchanged: '#F4F4F4' }, wickWidth: 2 }] },
+      data: {
+        datasets: [
+          {
+            label: symbol,
+            data: visibleData,
+            // Colores sólidos tipo TradingView/Binance
+            // Intentar todas las propiedades posibles para forzar el relleno opaco
+            backgroundColors: { up: '#0ecb81', down: '#f6465d', unchanged: '#999' },
+            borderWidth: 1,
+            order: 1
+          },
+          // Bollinger Bands Datasets
+          {
+            label: 'Bollinger Upper',
+            data: visibleBands.upper,
+            type: 'line',
+            borderColor: 'rgba(157, 126, 224, 0.8)', // Violeta suave
+            borderWidth: 1.35,
+            pointRadius: 0,
+            fill: false,
+            order: 2
+          },
+          {
+            label: 'Bollinger Lower',
+            data: visibleBands.lower,
+            type: 'line',
+            borderColor: 'rgba(157, 126, 224, 0.8)', // Violeta suave
+            backgroundColor: 'rgba(157, 126, 224, 0.068)', // Relleno tenue entre bandas
+            borderWidth: 1.35,
+            pointRadius: 0,
+            fill: 1, // Llenar hasta el dataset indice 1 (Upper)
+            order: 2
+          },
+          {
+            label: 'Bollinger Middle',
+            data: visibleBands.middle,
+            type: 'line',
+            borderColor: 'rgba(216, 21, 167, 0.86)', // Violeta más transparente
+            borderWidth: 1.13,
+            pointRadius: 0,
+            fill: false,
+            order: 2
+          }
+        ]
+      },
       options: {
         plugins: { legend: { display: false }, tooltip: { enabled: false } },
         scales: {
@@ -340,13 +405,39 @@ export async function renderCandlestick(symbol, interval) {
     state.chartInstance._symbol = symbol;
     state.chartInstance._interval = interval;
 
-    // wheel/pan (igual)
+    // handlers para zoom/pan usando rawData y recalculando slices
+    const updateChartSlice = () => {
+      let currentEnd = start + state.chartZoom;
+      if (currentEnd > rawData.length) {
+        currentEnd = rawData.length;
+        start = Math.max(0, currentEnd - state.chartZoom);
+      }
+
+      const newData = rawData.slice(start, currentEnd);
+      const newBands = {
+        upper: bandsFull.upper.slice(start, currentEnd),
+        middle: bandsFull.middle.slice(start, currentEnd),
+        lower: bandsFull.lower.slice(start, currentEnd)
+      };
+
+      if (state.chartInstance && state.chartInstance.data && state.chartInstance.data.datasets) {
+        state.chartInstance.data.datasets[0].data = newData;
+        // Update bands
+        if (state.chartInstance.data.datasets[1]) state.chartInstance.data.datasets[1].data = newBands.upper;
+        if (state.chartInstance.data.datasets[2]) state.chartInstance.data.datasets[2].data = newBands.lower;
+        if (state.chartInstance.data.datasets[3]) state.chartInstance.data.datasets[3].data = newBands.middle;
+
+        state.chartInstance.update('none');
+      }
+    };
+
     candlestickChart.onwheel = (e) => {
       e.preventDefault();
       if (e.deltaY < 0) state.chartZoom = Math.max(10, state.chartZoom - 10);
-      else state.chartZoom = Math.min(state.chartZoom + 10, data.length);
+      else state.chartZoom = Math.min(state.chartZoom + 10, rawData.length);
       renderCandlestick(symbol, interval);
     };
+
     let isPanning = false, panStartX = 0, panStartIndex = start;
     candlestickChart.onmousedown = (e) => { isPanning = true; panStartX = e.clientX; panStartIndex = start; };
     window.onmouseup = () => { isPanning = false; };
@@ -355,13 +446,12 @@ export async function renderCandlestick(symbol, interval) {
         const dx = e.clientX - panStartX;
         const moveBars = Math.round(dx / 3);
         let newStart = panStartIndex - moveBars;
-        newStart = Math.max(0, Math.min(data.length - state.chartZoom, newStart));
-        start = newStart; end = start + state.chartZoom;
-        if (end > data.length) { end = data.length; start = Math.max(0, end - state.chartZoom); }
-        const newChartData = data.slice(start, end).map(d => ({ x: d[0], o: parseFloat(d[1]), h: parseFloat(d[2]), l: parseFloat(d[3]), c: parseFloat(d[4]) }));
-        if (state.chartInstance && state.chartInstance.data && state.chartInstance.data.datasets && state.chartInstance.data.datasets[0]) {
-          state.chartInstance.data.datasets[0].data = newChartData;
-          state.chartInstance.update('none');
+        newStart = Math.max(0, Math.min(rawData.length - state.chartZoom, newStart));
+
+        if (newStart !== start) {
+          start = newStart;
+          // Usamos funcion interna para no re-crear todo el grafico, mas rapido
+          updateChartSlice();
         }
       }
     };

@@ -139,9 +139,11 @@ export async function loadTx() {
     const date = new Date(tsNum * 1000).toLocaleDateString('es-ES');
 
     if (!grouped[date]) grouped[date] = [];
-
     grouped[date].push(tx);
   }
+
+  // Pre-load images if possible (optional, helps layout stability)
+  // await Promise.all(slice.filter(tx => tx.tokenSymbol === 'USUAL' || tx.tokenSymbol === 'USUALX' ...).map(...));
 
   for (const date of Object.keys(grouped)) {
     const [day, month, year] = date.split('/');
@@ -193,7 +195,9 @@ export async function loadTx() {
       // Precio actual y histórico
       let priceUSD = 0;
       try {
-        priceUSD = await getTokenPriceUSD(sym === 'ETH' ? 'ETH' : sym);
+        if (sym.toUpperCase() !== 'ERC20') {
+          priceUSD = await getTokenPriceUSD(sym === 'ETH' ? 'ETH' : sym);
+        }
       } catch (e) {
         priceUSD = 0;
       }
@@ -203,7 +207,9 @@ export async function loadTx() {
 
       let priceHist = null;
       try {
-        priceHist = await getHistoricalTokenPriceUSD(sym === 'ETH' ? 'ETH' : sym, txDateObj);
+        if (sym.toUpperCase() !== 'ERC20') {
+          priceHist = await getHistoricalTokenPriceUSD(sym === 'ETH' ? 'ETH' : sym, txDateObj);
+        }
       } catch (e) {
         priceHist = null;
       }

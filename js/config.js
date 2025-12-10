@@ -11,8 +11,8 @@ export const SUPPORTED_CHAINS = [
   { id: 'ethereum', name: 'Ether', icon: '🔷' },
   { id: 'base-wallet', name: 'Base', icon: '🔵' },
   { id: 'binancesmartchain', name: 'BSC', icon: '🟡' },
-  { id: 'polygon', name: 'Polygon', icon: '🟣' },
-  { id: 'arbitrum', name: 'Arbitrum', icon: '🔷' },
-  { id: 'optimism', name: 'Optimism', icon: '🔴' },
+  // { id: 'polygon', name: 'Polygon', icon: '🟣' },
+  // { id: 'arbitrum', name: 'Arbitrum', icon: '🔷' },
+  // { id: 'optimism', name: 'Optimism', icon: '🔴' },
   { id: 'solana', name: 'Solana', icon: '🟢' }
 ];
