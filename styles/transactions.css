@@ -1,8 +1,8 @@
 #eth-transactions-section {
+  grid-area: transactions;
   display: flex;
   flex-direction: column;
-  flex: 0 0 555px; /* No grow, no shrink */
-  width: 555px;
+  width: 100%;
   max-width: 555px;
   min-width: 320px;
   border-radius: 14px;

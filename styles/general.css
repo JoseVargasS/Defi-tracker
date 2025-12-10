@@ -50,23 +50,24 @@ footer a {
   text-decoration: none;
 }
 
+/* Main Grid Layout */
 .main-grid {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  flex-wrap: nowrap;
-  gap: 48px;
+  display: grid;
+  grid-template-columns: minmax(auto, 555px) 1fr;
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    "wallet crypto"
+    "transactions crypto";
+  align-items: start;
+  gap: 32px;
   width: 100%;
   box-sizing: border-box;
   margin: 0 auto;
-  max-width: 1600px;
+  max-width: 1800px;
   padding: 16px;
 }
 
 .main-grid > * {
-  margin-bottom: 48px;
-  flex: 0 1 380px;
-  max-width: 420px;
-  min-width: 300px;
+  margin-bottom: 0;
   box-sizing: border-box;
 }

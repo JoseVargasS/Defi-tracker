@@ -159,25 +159,48 @@ export function createPairHtml(symbol, price, stats) {
     const pct = parseFloat(stats.priceChangePercent);
     change = pct.toFixed(2) + '%';
     changeClass = pct > 0 ? 'positive' : (pct < 0 ? 'negative' : '');
-    changeIcon = pct > 0 ? '<span class="arrow">▲</span>' : (pct < 0 ? '<span class="arrow">▼</span>' : '');
+    // Remove arrow icon from text as we might style it differently or keep it simple
+    changeIcon = pct > 0 ? '' : (pct < 0 ? '' : '');
   }
   state.lastPrices[symbol] = price;
   const source = symbol === 'CTXCUSDT' ? 'HTX' : 'Binance';
   const sourceUrl = source === 'HTX' ? 'https://www.htx.com/' : 'https://www.binance.com/';
+
+  // Icon generation (trying coincap assets, fallback to generic)
+  const iconHtml = `<div class="coin-icon">
+    <img src="https://assets.coincap.io/assets/icons/${base.toLowerCase()}@2x.png" onerror="this.onerror=null;this.src='https://cdn-icons-png.flaticon.com/512/1213/1213387.png';">
+  </div>`;
+
   let infoHtml = `<div class="coin-info">
+    <span class="coin-symbol">${base} <span class="coin-symbol-suffix">/USDT</span></span>
     <span class="coin-name">${getCoinName(symbol)}</span>
-    <span class="coin-symbol">${base}/USDT <a class="pair-source-link" href="${sourceUrl}" target="_blank">${source}</a></span>
   </div>`;
+
   const html = `<div class="tracked-pair" data-symbol="${symbol}">
+    ${iconHtml}
     ${infoHtml}
-    <span class="pair-price" data-symbol="${symbol}">${formatPrice(price)}</span>
-    <span class="pair-change ${changeClass}" data-symbol="${symbol}">${changeIcon}${change}</span>
-    <button class="delete-btn" onclick="event.stopPropagation();window.removeTrackedPair && window.removeTrackedPair('${symbol}')" title="Eliminar">✕</button>
+    <div class="pair-price-group">
+        <span class="pair-price" data-symbol="${symbol}">${formatPrice(price)}</span>
+        <span class="pair-change ${changeClass}" data-symbol="${symbol}">${change}${changeIcon}</span>
+    </div>
+    
   </div>`;
+  // Removed explicit delete button from layout to save space, relies on hover or context menu in future, 
+  // or add it back if needed. The CSS hides it anyway.
+
   const temp = document.createElement('div');
   temp.innerHTML = html;
   const el = temp.firstElementChild;
   el.onclick = () => showPairDetails(symbol);
+
+  // Add delete functionality via context menu or similar? 
+  // For now let's append a hidden delete button just in case CSS wants to show it
+  const delBtn = document.createElement('button');
+  delBtn.className = 'delete-btn';
+  delBtn.innerHTML = '✕';
+  delBtn.onclick = (e) => { e.stopPropagation(); window.removeTrackedPair && window.removeTrackedPair(symbol); };
+  el.appendChild(delBtn);
+
   return el;
 }
 

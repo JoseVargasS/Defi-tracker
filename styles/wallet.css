@@ -5,15 +5,14 @@
   padding: 16px;
 }
 .wallet-section {
-  flex: 0 1 505px;
-  max-width: 505px;
-  min-width: 450px;
+  grid-area: wallet;
+  width: 100%;
+  max-width: 555px; /* Match transaction width */
+  min-width: 320px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 48px;
   box-sizing: border-box;
-  width: 100%;
 }
 
 .wallet-section .card {

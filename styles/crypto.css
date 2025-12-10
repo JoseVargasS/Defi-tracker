@@ -198,9 +198,9 @@
 
 #candlestick-chart {
   width: 100% !important;
-  max-width: 700px;
-  height: 350px !important;
-  max-height: 350px;
+  max-width: none; /* Remove max-width limit */
+  height: 600px !important; /* Increase height as requested */
+  max-height: 800px;
   display: block;
   margin: 0 auto;
   background: #16181d;
@@ -301,11 +301,236 @@
   opacity: 1;
 }
 
+/* Layout Grid for Crypto Section */
+/* Layout Grid for Crypto Section */
 .crypto-section {
-  flex: 0 1 600px;
-  max-width: 620px;
-  min-width: 400px;
-  margin: 0 auto;
-  box-sizing: border-box;
+  grid-area: crypto;
   width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 340px; /* Chart area | Search & Watchlist area */
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    "chart search"
+    "chart list";
+  gap: 24px;
+  align-items: start;
+}
+
+/* Header/Search Area */
+.crypto-section > h1 {
+  display: none; /* Hide old title to save space, or move it */
+}
+
+#pair-form {
+  grid-area: search;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#pair-search {
+  padding: 12px 18px;
+  border-radius: 8px;
+  border: 1px solid #353945;
+  background: #181a20;
+  color: #fff;
+  font-size: 1rem;
+}
+
+/* Watchlist (Right Column) */
+#tracked-pairs {
+  grid-area: list;
+  margin-top: 0;
+  background: #23262f;
+  border-radius: 14px;
+  padding: 0;
+  overflow: hidden;
+  max-height: 800px; /* Match chart height area */
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #353945 #23262f;
+}
+
+#tracked-pairs::-webkit-scrollbar {
+  width: 6px;
+}
+#tracked-pairs::-webkit-scrollbar-thumb {
+  background: #353945;
+  border-radius: 3px;
+}
+
+/* Adjust Pair Items for Narrower Column */
+.tracked-pair {
+  display: grid;
+  grid-template-columns: 40px 1fr auto auto; /* Icon | Info | Price/Change | Delete */
+  align-items: center;
+  padding: 8px 12px; /* Reduced padding */
+  gap: 8px; /* Reduced gap */
+  min-height: 56px; /* Reduced height */
+  border-bottom: 1px solid #2d313a;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.tracked-pair:hover {
+  background: #2c303a;
+}
+
+.tracked-pair:last-child {
+  border-bottom: none;
+}
+
+.tracked-pair .coin-icon {
+  grid-column: 1;
+  grid-row: 1;
+  width: 36px; /* Slightly smaller */
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #181a20;
+  border-radius: 50%;
+  padding: 4px;
+  box-sizing: border-box;
+}
+
+.tracked-pair .coin-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 50%;
+}
+
+.coin-info {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  margin-left: 4px;
+}
+
+.coin-symbol {
+  font-size: 1rem !important; /* Reverting slightly for compactness or keeping 1.1 if fits */
+  font-weight: 700;
+  color: #fff;
+}
+
+.coin-symbol-suffix {
+  font-size: 0.8em;
+  color: #777;
+  font-weight: 600;
+  margin-left: 2px;
+}
+
+.tracked-pair .coin-name {
+  font-size: 0.8rem;
+  color: #aaa;
+  font-weight: 500;
+  margin-top: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Price & Change Stacked on Right */
+.tracked-pair .pair-price-group {
+  grid-column: 3;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.tracked-pair .pair-price {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.tracked-pair .pair-change {
+  font-size: 0.85rem;
+  padding: 2px 0;
+  min-width: 60px;
+  border-radius: 4px;
+  text-align: right;
+  font-weight: 600;
+  background: none !important; /* Remove background to match screenshot style if needed, or keep? Screenshot has "2.00%" green text. */
+}
+/* Re-evaluating screenshot: The screenshot shows green text on dark bg, looks like no background pill, just text colored. 
+   But the user said "vuelvelo a poner", implying they liked the old style or just functionality. 
+   The uploaded image shows simple text + arrow? No, it looks like a pill in the image provided earlier? 
+   Wait, the user uploaded an image just now (step 62). Let me check it visually.
+   It shows "USUAL... 0.0255 +2.00% X". The percent is green text.
+   Let's keep the pill if it looks good, but maybe transparent bg if preferred. 
+   I will keep current styles but enable the delete button. */
+
+.delete-btn {
+  grid-column: 4;
+  grid-row: 1;
+  display: flex !important; /* Force show */
+  background: transparent;
+  color: #777;
+  border: none;
+  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s, background 0.2s;
+  margin-left: 8px;
+}
+
+.delete-btn:hover {
+  background: #353945;
+  color: #fff;
+}
+
+/* We can add a delete mode or small x later if user asks. For now cleaner list. */
+
+
+/* Chart Area (Left Column) */
+#pair-details {
+  grid-area: chart;
+  margin-top: 0;
+  background: #181a20;
+  border-radius: 14px;
+  padding: 24px;
+  height: 100%;
+  min-height: 500px; /* Reduced min height slightly */
+  display: flex !important;
+  flex-direction: column;
+}
+
+#chart-wrapper {
+  flex: 1;
+  min-height: 0; /* Crucial for nested flex scrolling/sizing */
+  position: relative;
+  width: 100%;
+}
+
+/* Make chart take remaining height */
+#candlestick-chart {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100% !important;
+  background: #16181d;
+  border-radius: 8px;
+}
+
+#pair-details.hidden {
+  display: none !important;
+  /* If hidden, the list might want to expand? separate issue. styling for active state */
+}
+
+/* Adjustments for stats inside details */
+.pair-stats {
+  margin-top: auto; /* Push to bottom if needed or keep top */
 }
