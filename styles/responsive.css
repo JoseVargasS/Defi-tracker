@@ -7,7 +7,8 @@
   .main-grid {
     flex-wrap: wrap;
     justify-content: center;
-    gap: 32px;
+    gap: 28px;
+    padding: 20px;
   }
 
   .crypto-section {
@@ -29,6 +30,8 @@
     flex-direction: column;
     align-items: center;
     gap: 24px;
+    padding: 16px;
+    border-radius: 16px;
   }
 
   .crypto-section,
@@ -36,5 +39,94 @@
   #eth-transactions-section {
     flex: 1 1 100%;
     max-width: 95%;
+  }
+
+  .main-logo-title h1 {
+    font-size: 1.6rem;
+  }
+
+  .main-logo-title img {
+    width: 36px;
+    height: 36px;
+  }
+
+  .tracked-pair {
+    grid-template-columns: 36px 1fr auto;
+    padding: 8px 10px;
+    min-height: 48px;
+  }
+
+  .tracked-pair .coin-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .delete-btn {
+    display: none !important;
+  }
+
+  #candlestick-chart {
+    height: 350px !important;
+  }
+
+  .wallet-section .card {
+    padding: 20px;
+  }
+
+  .wallet-totals {
+    text-align: center;
+    align-items: center;
+  }
+
+  .wallet-total-usd {
+    font-size: 1.8rem;
+  }
+
+  .input-group {
+    flex-direction: column;
+  }
+
+  #btnFetchWallet {
+    width: 100%;
+  }
+}
+
+/* ---- Pantallas muy pequeñas ---- */
+@media (max-width: 480px) {
+  #app {
+    padding: 12px;
+  }
+
+  .main-grid {
+    gap: 16px;
+    padding: 12px;
+  }
+
+  .wallet-section,
+  #eth-transactions-section {
+    max-width: 100%;
+  }
+
+  .crypto-section {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      "search"
+      "list";
+  }
+
+  #pair-details {
+    grid-area: chart;
+    display: none;
+  }
+
+  .tracked-pair .pair-change {
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    min-width: 50px;
+  }
+
+  .tracked-pair .pair-price {
+    font-size: 0.9rem;
   }
 }

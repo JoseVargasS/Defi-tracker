@@ -1,5 +1,5 @@
 body {
-  background: #111114;
+  background: linear-gradient(135deg, #0d0d12 0%, #1a1a24 50%, #12121a 100%);
   color: #f4f4f4;
   font-family: "Inter", "Segoe UI", Arial, sans-serif;
   margin: 0;
@@ -10,7 +10,7 @@ body {
 
 #app {
   margin: 0;
-  background: #181a20;
+  background: linear-gradient(180deg, #1c1f2a 0%, #1a1d26 100%);
   border-radius: 0;
   padding: clamp(16px, 4vw, 32px);
   box-sizing: border-box;
@@ -27,27 +27,90 @@ header {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
+  padding: 20px 0;
+  position: relative;
+}
+
+.main-logo-title::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 3px;
+  background: linear-gradient(90deg, #45b26b 0%, #3772ff 100%);
+  border-radius: 2px;
 }
 
 .main-logo-title img {
-  width: 38px;
+  width: 48px;
+  height: 48px;
+  animation: pulse 3s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.main-logo-title h1 {
+  font-size: 2.2rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #fff 0%, #45b26b 50%, #3772ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.5px;
 }
 
 section {
   margin-bottom: 48px;
 }
 
+section header {
+  margin-bottom: 20px;
+}
+
+section header h1 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #fff;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #2d313a;
+  display: inline-block;
+}
+
 footer {
   text-align: center;
   color: #777;
   font-size: 0.95rem;
-  margin-top: 32px;
+  margin-top: 48px;
+  padding: 24px;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(45, 49, 58, 0.3) 100%
+  );
+  border-top: 1px solid #2d313a;
 }
 
 footer a {
   color: #45b26b;
   text-decoration: none;
+  transition: color 0.2s;
+  font-weight: 600;
+}
+
+footer a:hover {
+  color: #3772ff;
+  text-decoration: underline;
 }
 
 /* Main Grid Layout */
@@ -64,10 +127,39 @@ footer a {
   box-sizing: border-box;
   margin: 0 auto;
   max-width: 1800px;
-  padding: 16px;
+  padding: 24px;
+  background: rgba(26, 30, 40, 0.5);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
 .main-grid > * {
   margin-bottom: 0;
   box-sizing: border-box;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.wallet-section,
+#eth-transactions-section,
+.crypto-section {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+#eth-transactions-section {
+  animation-delay: 0.1s;
+}
+
+.crypto-section {
+  animation-delay: 0.2s;
 }
