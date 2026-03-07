@@ -139,13 +139,12 @@
 }
 
 #pair-details {
-  background: linear-gradient(145deg, #181a20 0%, #15171d 100%);
-  border-radius: 18px;
-  padding: 28px 22px 22px 22px;
-  margin-top: 24px;
+  background: #000000;
+  border-radius: 4px;
+  padding: 24px;
+  margin-top: 0;
   position: relative;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  border: 1px solid #2d313a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 #pair-details.hidden {
@@ -222,8 +221,8 @@
 #candlestick-chart {
   width: 100% !important;
   max-width: none;
-  height: 600px !important;
-  max-height: 800px;
+  height: 500px !important;
+  max-height: 700px;
   display: block;
   margin: 0 auto;
   background: linear-gradient(180deg, #16181d 0%, #1a1d26 100%);
@@ -244,10 +243,11 @@
   flex-wrap: wrap;
   gap: 20px 36px;
   margin: 14px 0 22px 0;
-  background: linear-gradient(145deg, #23262f 0%, #1e2129 100%);
-  border-radius: 14px;
-  padding: 16px 22px;
-  border: 1px solid #2d313a;
+  background: transparent;
+  border-radius: 0;
+  padding: 16px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .pair-stats .label {
@@ -266,11 +266,11 @@
 }
 
 .pair-stats .pair-change.positive {
-  color: #1ecb81;
+  color: #00b07c;
 }
 
 .pair-stats .pair-change.negative {
-  color: #e74c4c;
+  color: #f23645;
 }
 
 .delete-btn {
@@ -497,13 +497,6 @@
   text-align: right;
   font-weight: 600;
 }
-/* Re-evaluating screenshot: The screenshot shows green text on dark bg, looks like no background pill, just text colored. 
-   But the user said "vuelvelo a poner", implying they liked the old style or just functionality. 
-   The uploaded image shows simple text + arrow? No, it looks like a pill in the image provided earlier? 
-   Wait, the user uploaded an image just now (step 62). Let me check it visually.
-   It shows "USUAL... 0.0255 +2.00% X". The percent is green text.
-   Let's keep the pill if it looks good, but maybe transparent bg if preferred. 
-   I will keep current styles but enable the delete button. */
 
 .delete-btn {
   grid-column: 4;
@@ -535,20 +528,23 @@
 #pair-details {
   grid-area: chart;
   margin-top: 0;
-  background: #181a20;
-  border-radius: 14px;
+  background: #000000;
+  border-radius: 0;
   padding: 24px;
   height: 100%;
-  min-height: 500px; /* Reduced min height slightly */
+  min-height: 700px;
   display: flex !important;
   flex-direction: column;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 #chart-wrapper {
-  flex: 1;
-  min-height: 0; /* Crucial for nested flex scrolling/sizing */
+  flex: none;
+  height: 45%;
+  min-height: 0;
   position: relative;
   width: 100%;
+  margin-bottom: 8px;
 }
 
 /* Make chart take remaining height */
@@ -560,6 +556,70 @@
   height: 100% !important;
   background: #16181d;
   border-radius: 8px;
+}
+
+/* Indicator Panel Styles */
+.indicator-panel {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.indicator-single-panel {
+  background: #000000;
+  border-radius: 4px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: border-color 0.2s;
+}
+
+.indicator-single-panel:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.indicator-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding: 0 4px;
+}
+
+.indicator-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.indicator-value {
+  font-family: 'Inter', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  color: #ffffff;
+}
+
+.indicator-value.positive {
+  color: #00b07c;
+}
+
+.indicator-value.negative {
+  color: #f23645;
+}
+
+.indicator-canvas-container {
+  width: 100%;
+  height: 90px;
+  position: relative;
+}
+
+.indicator-canvas {
+  width: 100% !important;
+  height: 100% !important;
 }
 
 #pair-details.hidden {

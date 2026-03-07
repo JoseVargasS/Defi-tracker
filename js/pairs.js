@@ -4,6 +4,7 @@ import { state } from './state.js';
 import { formatPrice } from './utils.js';
 import { fetchPrice, fetch24hStats, fetchHTXCandles, fetchKlines } from './exchange.js';
 import { names } from './state.js'
+import { createAdvancedTooltipPlugin, createIndicatorPanel } from './chartAdvanced.js';
 
 // crosshairPlugin (igual lógica que tenías)
 export const crosshairPlugin = {
@@ -328,8 +329,8 @@ export async function renderCandlestick(symbol, interval) {
           ds.data = visibleData;
 
           // Re-force colors on update to ensure solidity
-          const upC = '#0ecb81';
-          const downC = '#f6465d';
+          const upC = '#00b07c'; // OKX Green
+          const downC = '#f23645'; // OKX Red
           const neutC = '#999999';
           ds.color = { up: upC, down: downC, unchanged: neutC };
           ds.borderColor = { up: upC, down: downC, unchanged: neutC };
@@ -371,9 +372,10 @@ export async function renderCandlestick(symbol, interval) {
           {
             label: symbol,
             data: visibleData,
-            // Colores sólidos tipo TradingView/Binance
-            // Intentar todas las propiedades posibles para forzar el relleno opaco
-            backgroundColors: { up: '#0ecb81', down: '#f6465d', unchanged: '#999' },
+            // Colores sólidos tipo OKX
+            backgroundColors: { up: '#00b07c', down: '#f23645', unchanged: '#999' },
+            borderColors: { up: '#00b07c', down: '#f23645', unchanged: '#999' },
+            wickColors: { up: '#00b07c', down: '#f23645', unchanged: '#999' },
             borderWidth: 1,
             order: 1
           },
@@ -382,8 +384,8 @@ export async function renderCandlestick(symbol, interval) {
             label: 'Bollinger Upper',
             data: visibleBands.upper,
             type: 'line',
-            borderColor: 'rgba(157, 126, 224, 0.8)', // Violeta suave
-            borderWidth: 1.35,
+            borderColor: 'rgba(24, 191, 255, 0.4)', // Cyan suave
+            borderWidth: 1,
             pointRadius: 0,
             fill: false,
             order: 2
@@ -392,19 +394,19 @@ export async function renderCandlestick(symbol, interval) {
             label: 'Bollinger Lower',
             data: visibleBands.lower,
             type: 'line',
-            borderColor: 'rgba(157, 126, 224, 0.8)', // Violeta suave
-            backgroundColor: 'rgba(157, 126, 224, 0.068)', // Relleno tenue entre bandas
-            borderWidth: 1.35,
+            borderColor: 'rgba(24, 191, 255, 0.4)', // Cyan suave
+            backgroundColor: 'rgba(24, 191, 255, 0.03)',
+            borderWidth: 1,
             pointRadius: 0,
-            fill: 1, // Llenar hasta el dataset indice 1 (Upper)
+            fill: 1,
             order: 2
           },
           {
             label: 'Bollinger Middle',
             data: visibleBands.middle,
             type: 'line',
-            borderColor: 'rgba(216, 21, 167, 0.86)', // Violeta más transparente
-            borderWidth: 1.13,
+            borderColor: 'rgba(240, 185, 11, 0.4)', // Amarillo suave
+            borderWidth: 1,
             pointRadius: 0,
             fill: false,
             order: 2
@@ -412,17 +414,20 @@ export async function renderCandlestick(symbol, interval) {
         ]
       },
       options: {
-        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        plugins: {
+          legend: { display: false },
+          tooltip: { enabled: false }
+        },
         scales: {
-          x: { type: 'time', time: { unit: (interval === '1d' || interval === '3d') ? 'day' : ((interval === '4h' || interval === '1h') ? 'hour' : 'minute') }, grid: { color: '#353945' }, ticks: { color: '#F4F4F4' } },
-          y: { grid: { color: '#353945' }, ticks: { color: '#F4F4F4' } }
+          x: { type: 'time', time: { unit: (interval === '1d' || interval === '3d') ? 'day' : ((interval === '4h' || interval === '1h') ? 'hour' : 'minute') }, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888' } },
+          y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888' } }
         },
         responsive: true,
         maintainAspectRatio: false,
         aspectRatio: 2,
         animation: false
       },
-      plugins: [crosshairPlugin]
+      plugins: [crosshairPlugin, createAdvancedTooltipPlugin()]
     });
 
     state.chartInstance._symbol = symbol;
@@ -479,6 +484,11 @@ export async function renderCandlestick(symbol, interval) {
       }
     };
 
+    // Actualizar indicadores después del gráfico
+    if (window.updateAllIndicators) {
+      window.updateAllIndicators(visibleData);
+    }
+
   } finally {
     state.candleRenderLock = false;
   }
@@ -521,7 +531,7 @@ export async function refreshPairDetails(symbol) {
   const price = await fetchPrice(symbol);
   const stats = await fetch24hStats(symbol);
   updatePairUI(symbol, price, stats);
-  renderCandlestick(symbol, state.currentInterval);
+  await renderCandlestick(symbol, state.currentInterval);
 }
 
 export async function showPairDetails(symbol) {
@@ -539,6 +549,9 @@ export async function showPairDetails(symbol) {
 
   state.currentPair = symbol;
   pairDetails.classList.remove('hidden');
+
+  // Crear panel de indicadores
+  createIndicatorPanel();
 
   // Carga inicial
   await refreshPairDetails(symbol);
