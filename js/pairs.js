@@ -79,11 +79,16 @@ export const crosshairPlugin = {
         ctx.textAlign = 'center';
         const labelWidth = ctx.measureText(yLabel).width + 18;
         const labelHeight = 24;
-        let boxX = chart.crosshair.x - labelWidth / 2;
-        let boxY = chart.crosshair.y - labelHeight - 8;
-        if (boxX < chart.chartArea.left) boxX = chart.chartArea.left + 2;
-        if (boxX + labelWidth > chart.chartArea.right) boxX = chart.chartArea.right - labelWidth - 2;
-        if (boxY < chart.chartArea.top) boxY = chart.crosshair.y + 8;
+        let boxX = chart.chartArea.right + 2; // Colocado en el área de ticks de la derecha
+        let boxY = chart.crosshair.y - labelHeight / 2;
+
+        // Ajustar si se sale por arriba o abajo
+        if (boxY < chart.chartArea.top) boxY = chart.chartArea.top;
+        if (boxY + labelHeight > chart.chartArea.bottom) boxY = chart.chartArea.bottom - labelHeight;
+
+        // Si no hay espacio a la derecha, ponerlo justo dentro del borde derecho
+        if (boxX + labelWidth > chart.width) boxX = chart.chartArea.right - labelWidth - 2;
+
         ctx.fillStyle = '#23262F';
         ctx.strokeStyle = '#45B26B';
         ctx.lineWidth = 1.5;
@@ -126,10 +131,13 @@ export const crosshairPlugin = {
         const labelWidth = ctx.measureText(dateLabel).width + 16;
         const labelHeight = 22;
         let xBoxX = chart.crosshair.x - labelWidth / 2;
-        if (xBoxX + labelWidth > chart.width) xBoxX = chart.width - labelWidth - 6;
-        if (xBoxX < 0) xBoxX = 6;
-        let xBoxY = chart.chartArea.bottom + 6;
-        if (xBoxY + labelHeight > chart.height) xBoxY = chart.chartArea.bottom - labelHeight - 6;
+
+        // Ajustar si se sale por los lados
+        if (xBoxX + labelWidth > chart.chartArea.right) xBoxX = chart.chartArea.right - labelWidth;
+        if (xBoxX < chart.chartArea.left) xBoxX = chart.chartArea.left;
+
+        let xBoxY = chart.chartArea.bottom + 4; // Justo debajo del área del gráfico
+
         ctx.fillStyle = '#23262F';
         ctx.strokeStyle = '#45B26B';
         ctx.lineWidth = 1.5;
@@ -503,6 +511,9 @@ export function updatePairUI(symbol, price, stats) {
   const changePct = parseFloat(stats.priceChangePercent || 0);
   const changeClass = change > 0 ? 'positive' : (change < 0 ? 'negative' : '');
   pairTitle.innerHTML = `${base}/USDT <span>$${formatPrice(price)}</span> <span class="${changeClass}">${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%</span>`;
+
+  // Actualizar título de la pestaña del navegador
+  document.title = `${formatPrice(price)} | ${base}/USDT | DEFI & Cripto Tracker`;
 
   const high = parseFloat(stats.highPrice || 0);
   const low = parseFloat(stats.lowPrice || 0);

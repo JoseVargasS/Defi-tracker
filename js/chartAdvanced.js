@@ -151,6 +151,83 @@ export function calculateVolume(data) {
   }));
 }
 
+// Calcular Stochastic RSI
+export function calculateStochRSI(data, rsiPeriod = 14, stochPeriod = 14, kPeriod = 3, dPeriod = 3) {
+  const rsi = calculateRSI(data, rsiPeriod);
+  const stochRsiK = [];
+  const stochRsiD = [];
+
+  // Filtrar valores no nulos de RSI
+  const rsiValues = rsi.filter(d => d.y !== null);
+  const rsiOffset = rsi.length - rsiValues.length;
+
+  const kValues = [];
+
+  for (let i = 0; i < rsiValues.length; i++) {
+    if (i < stochPeriod - 1) {
+      kValues.push(null);
+      continue;
+    }
+
+    const slice = rsiValues.slice(i - stochPeriod + 1, i + 1);
+    const lowRSI = Math.min(...slice.map(d => d.y));
+    const highRSI = Math.max(...slice.map(d => d.y));
+
+    if (highRSI === lowRSI) {
+      kValues.push(0);
+    } else {
+      const k = ((rsiValues[i].y - lowRSI) / (highRSI - lowRSI)) * 100;
+      kValues.push(k);
+    }
+  }
+
+  // Suavizado K
+  const smoothedK = [];
+  for (let i = 0; i < kValues.length; i++) {
+    if (i < kPeriod - 1 || kValues[i] === null) {
+      smoothedK.push(null);
+      continue;
+    }
+    const slice = kValues.slice(i - kPeriod + 1, i + 1);
+    if (slice.some(v => v === null)) {
+      smoothedK.push(null);
+      continue;
+    }
+    const avgK = slice.reduce((a, b) => a + b, 0) / kPeriod;
+    smoothedK.push(avgK);
+  }
+
+  // Suavizado D
+  const smoothedD = [];
+  for (let i = 0; i < smoothedK.length; i++) {
+    if (i < dPeriod - 1 || smoothedK[i] === null) {
+      smoothedD.push(null);
+      continue;
+    }
+    const slice = smoothedK.slice(i - dPeriod + 1, i + 1);
+    if (slice.some(v => v === null)) {
+      smoothedD.push(null);
+      continue;
+    }
+    const avgD = slice.reduce((a, b) => a + b, 0) / dPeriod;
+    smoothedD.push(avgD);
+  }
+
+  // Mapear de vuelta a la línea de tiempo original
+  for (let i = 0; i < rsi.length; i++) {
+    const valIdx = i - rsiOffset;
+    if (valIdx >= 0) {
+      stochRsiK.push({ x: rsi[i].x, y: smoothedK[valIdx] });
+      stochRsiD.push({ x: rsi[i].x, y: smoothedD[valIdx] });
+    } else {
+      stochRsiK.push({ x: rsi[i].x, y: null });
+      stochRsiD.push({ x: rsi[i].x, y: null });
+    }
+  }
+
+  return { k: stochRsiK, d: stochRsiD };
+}
+
 // ============================================
 // TOOLTIP AVANZADO
 // ============================================
@@ -274,10 +351,8 @@ export function createAdvancedTooltipPlugin() {
 
 const indicators = [
   { id: 'volume', name: 'Volumen', type: 'volume' },
-  { id: 'rsi', name: 'RSI (14)', type: 'rsi' },
   { id: 'macd', name: 'MACD', type: 'macd' },
-  { id: 'sma20', name: 'SMA 20', type: 'sma', period: 20, color: '#f0b90b' },
-  { id: 'sma50', name: 'SMA 50', type: 'sma', period: 50, color: '#9d7ee2' }
+  { id: 'stochrsi', name: 'Stoch RSI', type: 'stochrsi' }
 ];
 
 export function createIndicatorPanel() {
@@ -340,10 +415,10 @@ export function createIndicatorPanel() {
           config = createMACDConfig(data);
           latestValue = data.macdLine[data.macdLine.length - 1]?.y?.toFixed(4);
           break;
-        case 'sma':
-          data = calculateSMA(mainChartData, ind.period);
-          config = createSMAConfig(data, ind.color);
-          latestValue = data[data.length - 1]?.y?.toFixed(2);
+        case 'stochrsi':
+          data = calculateStochRSI(mainChartData);
+          config = createStochRSIConfig(data);
+          latestValue = `K:${data.k[data.k.length - 1]?.y?.toFixed(2)} D:${data.d[data.d.length - 1]?.y?.toFixed(2)}`;
           break;
       }
 
@@ -497,19 +572,30 @@ function createMACDConfig(data) {
   };
 }
 
-function createSMAConfig(data, color) {
+function createStochRSIConfig(data) {
   return {
     type: 'line',
     data: {
-      datasets: [{
-        label: 'SMA',
-        data: data,
-        borderColor: color,
-        borderWidth: 1.2,
-        pointRadius: 0,
-        fill: false,
-        tension: 0.1
-      }]
+      datasets: [
+        {
+          label: 'K',
+          data: data.k,
+          borderColor: '#18bfff', // Cyan
+          borderWidth: 1.2,
+          pointRadius: 0,
+          fill: false,
+          tension: 0.1
+        },
+        {
+          label: 'D',
+          data: data.d,
+          borderColor: '#f0b90b', // Yellow
+          borderWidth: 1.2,
+          pointRadius: 0,
+          fill: false,
+          tension: 0.1
+        }
+      ]
     },
     options: {
       responsive: true,
@@ -518,11 +604,21 @@ function createSMAConfig(data, color) {
       scales: {
         x: {
           type: 'time',
-          display: false
+          display: false,
+          grid: { display: false }
         },
         y: {
-          grid: { color: 'rgba(255, 255, 255, 0.05)', drawBorder: false },
-          ticks: { color: '#888', font: { size: 9 } }
+          min: 0,
+          max: 100,
+          grid: {
+            color: (context) => [20, 80].includes(context.tick.value) ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+            drawBorder: false
+          },
+          ticks: {
+            color: '#888',
+            font: { size: 9 },
+            callback: (val) => [20, 80].includes(val) ? val : null
+          }
         }
       }
     }

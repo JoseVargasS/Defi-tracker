@@ -569,15 +569,16 @@
 }
 
 .indicator-single-panel {
-  background: #000000;
-  border-radius: 4px;
-  padding: 12px;
+  background: #16181d;
+  border-radius: 8px;
+  padding: 8px 12px;
   border: 1px solid rgba(255, 255, 255, 0.05);
   transition: border-color 0.2s;
+  margin-bottom: 4px;
 }
 
 .indicator-single-panel:hover {
-  border-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(69, 178, 107, 0.3);
 }
 
 .indicator-header {
@@ -613,7 +614,7 @@
 
 .indicator-canvas-container {
   width: 100%;
-  height: 90px;
+  height: 80px;
   position: relative;
 }
 
