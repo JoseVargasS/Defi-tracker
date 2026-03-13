@@ -540,12 +540,12 @@ export function updatePairUI(symbol, price, stats) {
     `;
 }
 
-export async function refreshPairDetails(symbol) {
+export async function updatePairInfo(symbol) {
   if (state.currentPair !== symbol) return; // Evitar updates si cambió el par
   const price = await fetchPrice(symbol);
   const stats = await fetch24hStats(symbol);
   updatePairUI(symbol, price, stats);
-  await renderCandlestick(symbol, state.currentInterval);
+  // Removido await renderCandlestick para evitar que la gráfica se reinicie cada 5 segundos
 }
 
 export async function showPairDetails(symbol) {
@@ -567,11 +567,12 @@ export async function showPairDetails(symbol) {
   // Panel de indicadores eliminado
 
   // Carga inicial
-  await refreshPairDetails(symbol);
+  await updatePairInfo(symbol);
+  await renderCandlestick(symbol, state.currentInterval);
 
-  // Iniciar polling de 5 segundos
+  // Iniciar polling de 5 segundos solo para información (sin renderizado de velas)
   state.detailInterval = setInterval(() => {
-    refreshPairDetails(symbol);
+    updatePairInfo(symbol);
   }, 5000);
 
   // Limpiar al cerrar details

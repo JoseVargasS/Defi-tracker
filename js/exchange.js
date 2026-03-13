@@ -48,7 +48,7 @@ export async function fetchPrice(symbol) {
 export async function fetchHTXCandles(_symbol, interval) {
   const map = { '1d': '1day', '3d': '3day', '4h': '4hour', '1h': '60min', '15m': '15min', '5m': '5min', '1m': '1min' };
   const period = map[interval] || '1day';
-  const res = await makeRequest(`${HTX_API}/market/history/kline?period=${period}&size=500&symbol=ctxcusdt`);
+  const res = await makeRequest(`${HTX_API}/market/history/kline?period=${period}&size=2000&symbol=ctxcusdt`);
   const data = res;
   return (data.data || []).reverse();
 }
@@ -59,7 +59,7 @@ export async function fetchKlines(symbol, interval) {
   const qInterval = intervalMap[interval] || '1d';
   // Binance devuelve un array de arrays
   try {
-    const res = await makeRequest(`${BINANCE_API}/klines?symbol=${symbol}&interval=${qInterval}&limit=500`);
+    const res = await makeRequest(`${BINANCE_API}/klines?symbol=${symbol}&interval=${qInterval}&limit=1000`);
     return res; // normalmente es un array
   } catch (e) {
     console.error('fetchKlines error', e);
