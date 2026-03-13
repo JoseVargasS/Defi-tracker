@@ -539,9 +539,8 @@
 }
 
 #chart-wrapper {
-  flex: none;
-  height: 45%;
-  min-height: 0;
+  flex: 1;
+  min-height: 400px;
   position: relative;
   width: 100%;
   margin-bottom: 8px;
@@ -558,77 +557,4 @@
   border-radius: 8px;
 }
 
-/* Indicator Panel Styles */
-.indicator-panel {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.indicator-single-panel {
-  background: #16181d;
-  border-radius: 8px;
-  padding: 8px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: border-color 0.2s;
-  margin-bottom: 4px;
-}
-
-.indicator-single-panel:hover {
-  border-color: rgba(69, 178, 107, 0.3);
-}
-
-.indicator-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-  padding: 0 4px;
-}
-
-.indicator-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: #888;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.indicator-value {
-  font-family: 'Inter', monospace;
-  font-size: 12px;
-  font-weight: 500;
-  color: #ffffff;
-}
-
-.indicator-value.positive {
-  color: #00b07c;
-}
-
-.indicator-value.negative {
-  color: #f23645;
-}
-
-.indicator-canvas-container {
-  width: 100%;
-  height: 80px;
-  position: relative;
-}
-
-.indicator-canvas {
-  width: 100% !important;
-  height: 100% !important;
-}
-
-#pair-details.hidden {
-  display: none !important;
-  /* If hidden, the list might want to expand? separate issue. styling for active state */
-}
-
-/* Adjustments for stats inside details */
-.pair-stats {
-  margin-top: auto; /* Push to bottom if needed or keep top */
-}
+/* Indicator Panel Styles - Removed */

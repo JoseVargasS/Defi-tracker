@@ -4,7 +4,7 @@ import { state } from './state.js';
 import { formatPrice } from './utils.js';
 import { fetchPrice, fetch24hStats, fetchHTXCandles, fetchKlines } from './exchange.js';
 import { names } from './state.js'
-import { createAdvancedTooltipPlugin, createIndicatorPanel } from './chartAdvanced.js';
+import { createAdvancedTooltipPlugin } from './chartAdvanced.js';
 
 // crosshairPlugin (igual lógica que tenías)
 export const crosshairPlugin = {
@@ -79,15 +79,15 @@ export const crosshairPlugin = {
         ctx.textAlign = 'center';
         const labelWidth = ctx.measureText(yLabel).width + 18;
         const labelHeight = 24;
-        let boxX = chart.chartArea.right + 2; // Colocado en el área de ticks de la derecha
+        let boxX = chart.chartArea.right + 5; // Siempre en el margen derecho despejado
         let boxY = chart.crosshair.y - labelHeight / 2;
 
-        // Ajustar si se sale por arriba o abajo
+        // Ajustar si se sale por arriba o abajo (limitar al área de dibujo vertical)
         if (boxY < chart.chartArea.top) boxY = chart.chartArea.top;
         if (boxY + labelHeight > chart.chartArea.bottom) boxY = chart.chartArea.bottom - labelHeight;
 
-        // Si no hay espacio a la derecha, ponerlo justo dentro del borde derecho
-        if (boxX + labelWidth > chart.width) boxX = chart.chartArea.right - labelWidth - 2;
+        // Ya no movemos el label hacia la izquierda (dentro del gráfico)
+        // boxX se mantiene a la derecha del chartArea.right
 
         ctx.fillStyle = '#23262F';
         ctx.strokeStyle = '#45B26B';
@@ -433,7 +433,13 @@ export async function renderCandlestick(symbol, interval) {
         responsive: true,
         maintainAspectRatio: false,
         aspectRatio: 2,
-        animation: false
+        animation: false,
+        layout: {
+          padding: {
+            right: 80, // Espacio suficiente para que el tag de precio quepa fuera de la rejilla
+            bottom: 10
+          }
+        }
       },
       plugins: [crosshairPlugin, createAdvancedTooltipPlugin()]
     });
@@ -492,10 +498,7 @@ export async function renderCandlestick(symbol, interval) {
       }
     };
 
-    // Actualizar indicadores después del gráfico
-    if (window.updateAllIndicators) {
-      window.updateAllIndicators(visibleData);
-    }
+    // Actualizar indicadores después del gráfico (Eliminado)
 
   } finally {
     state.candleRenderLock = false;
@@ -561,8 +564,7 @@ export async function showPairDetails(symbol) {
   state.currentPair = symbol;
   pairDetails.classList.remove('hidden');
 
-  // Crear panel de indicadores
-  createIndicatorPanel();
+  // Panel de indicadores eliminado
 
   // Carga inicial
   await refreshPairDetails(symbol);
