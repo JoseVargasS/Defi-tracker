@@ -21,14 +21,52 @@ export async function fetchPrice(symbol) {
   }
 }
 
+// Nueva función de agrupación de velas (klines)
+function aggregateKlines(rawKlines, groupSize) {
+  const aggregated = [];
+  for (let i = 0; i < rawKlines.length; i += groupSize) {
+    const chunk = rawKlines.slice(i, i + groupSize);
+    if (chunk.length < groupSize && aggregated.length > 0) {
+      // Opcional: ignorar el último trozo si está incompleto, pero para tiempo real es mejor mostrarlo
+    }
+
+    const openTime = chunk[0][0]; // timestamp de inicio
+    const open = parseFloat(chunk[0][1]);
+    const close = parseFloat(chunk[chunk.length - 1][4]);
+
+    let high = -Infinity;
+    let low = Infinity;
+
+    for (const candle of chunk) {
+      const h = parseFloat(candle[2]);
+      const l = parseFloat(candle[3]);
+      if (h > high) high = h;
+      if (l < low) low = l;
+    }
+    // Formato de retorno emulando Binance: [timestamp, open, high, low, close]
+    aggregated.push([openTime, open.toString(), high.toString(), low.toString(), close.toString()]);
+  }
+  return aggregated;
+}
+
 // Nueva función: obtener klines de Binance correctamente (usa makeRequest)
 export async function fetchKlines(symbol, interval) {
-  const intervalMap = { '1d': '1d', '3d': '3d', '4h': '4h', '1h': '1h', '15m': '15m', '5m': '5m', '1m': '1m' };
+  const intervalMap = { '3M': '1M', '1M': '1M', '1w': '1w', '5d': '1d', '3d': '3d', '1d': '1d', '4h': '4h', '1h': '1h', '15m': '15m', '5m': '5m', '1m': '1m' };
   const qInterval = intervalMap[interval] || '1d';
   // Binance devuelve un array de arrays
   try {
-    const res = await makeRequest(`${BINANCE_API}/klines?symbol=${symbol}&interval=${qInterval}&limit=1000`);
-    return res; // normalmente es un array
+    // Si la agrupación es grande (ej: 3M con velas de 1M), pedimos más historial si queremos 500 velas finales = 1500 limit
+    const limit = interval === '3M' ? 1000 : (interval === '5d' ? 1000 : 1000);
+    const res = await makeRequest(`${BINANCE_API}/klines?symbol=${symbol}&interval=${qInterval}&limit=${limit}`);
+
+    let klines = res;
+    if (interval === '3M') {
+      klines = aggregateKlines(klines, 3);
+    } else if (interval === '5d') {
+      klines = aggregateKlines(klines, 5);
+    }
+
+    return klines; // normalmente es un array
   } catch (e) {
     console.error('fetchKlines error', e);
     return [];

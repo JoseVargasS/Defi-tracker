@@ -112,18 +112,20 @@ export const crosshairPlugin = {
       if (xValue) {
         const date = new Date(xValue);
         let dateLabel = '';
-        let interval = window.currentInterval || '1d';
-        if (interval === '1d' || interval === '3d') {
+        let interval = state.currentInterval || '1d';
+        if (['3M', '1M'].includes(interval)) {
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const year = date.getFullYear();
+          dateLabel = `${month}/${year}`;
+        } else if (['1w', '5d', '3d', '1d'].includes(interval)) {
           dateLabel = date.toLocaleDateString();
-        } else if (['4h', '1h', '15m', '5m', '1m', '3d'].includes(interval)) {
+        } else {
           const day = String(date.getDate()).padStart(2, '0');
           const month = String(date.getMonth() + 1).padStart(2, '0');
           const year = date.getFullYear();
           const hour = String(date.getHours()).padStart(2, '0');
           const min = String(date.getMinutes()).padStart(2, '0');
           dateLabel = `${day}/${month}/${year} ${hour}:${min}`;
-        } else {
-          dateLabel = date.toLocaleString();
         }
         ctx.font = '12px Inter, Arial';
         ctx.textBaseline = 'top';
@@ -419,7 +421,7 @@ export async function renderCandlestick(symbol, interval) {
           tooltip: { enabled: false }
         },
         scales: {
-          x: { type: 'time', time: { unit: (interval === '1d' || interval === '3d') ? 'day' : ((interval === '4h' || interval === '1h') ? 'hour' : 'minute') }, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888' } },
+          x: { type: 'time', time: { unit: ['3M', '1M'].includes(interval) ? 'month' : (interval === '1w' ? 'week' : (['5d', '3d', '1d'].includes(interval) ? 'day' : (['4h', '1h'].includes(interval) ? 'hour' : 'minute'))) }, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888' } },
           y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888' } }
         },
         responsive: true,
