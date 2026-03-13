@@ -359,10 +359,12 @@ export async function renderCandlestick(symbol, interval) {
     } catch (e) {
       if (state.chartInstance) { try { state.chartInstance.destroy(); } catch (err) { } state.chartInstance = null; }
     }
-    candlestickChart.onwheel = null;
-    candlestickChart.onmousedown = null;
-    candlestickChart.onmousemove = null;
-    try { window.onmouseup = null; } catch (e) { }
+    
+    // Cleanup previous robust listeners to prevent stacking
+    if (candlestickChart._zoomHandler) candlestickChart.removeEventListener('wheel', candlestickChart._zoomHandler);
+    if (candlestickChart._downHandler) candlestickChart.removeEventListener('pointerdown', candlestickChart._downHandler);
+    if (window._upHandler) window.removeEventListener('pointerup', window._upHandler);
+    if (candlestickChart._moveHandler) candlestickChart.removeEventListener('pointermove', candlestickChart._moveHandler);
 
     const ctx = candlestickChart.getContext('2d');
     if (!ctx) { console.error('Could not get canvas context!'); return; }
@@ -467,17 +469,26 @@ export async function renderCandlestick(symbol, interval) {
       }
     };
 
-    candlestickChart.onwheel = (e) => {
+    candlestickChart._zoomHandler = (e) => {
       e.preventDefault();
       if (e.deltaY < 0) state.chartZoom = Math.max(10, state.chartZoom - 10);
       else state.chartZoom = Math.min(state.chartZoom + 10, rawData.length);
       renderCandlestick(symbol, interval);
     };
+    candlestickChart.addEventListener('wheel', candlestickChart._zoomHandler, { passive: false });
 
     let isPanning = false, panStartX = 0, panStartIndex = start;
-    candlestickChart.onmousedown = (e) => { isPanning = true; panStartX = e.clientX; panStartIndex = start; };
-    window.onmouseup = () => { isPanning = false; };
-    candlestickChart.onmousemove = (e) => {
+    
+    candlestickChart._downHandler = (e) => { 
+      isPanning = true; 
+      panStartX = e.clientX; 
+      panStartIndex = start; 
+      candlestickChart.setPointerCapture(e.pointerId); // Ensure move events are captured even outside the bounds initially
+    };
+    
+    window._upHandler = () => { isPanning = false; };
+    
+    candlestickChart._moveHandler = (e) => {
       if (isPanning) {
         const dx = e.clientX - panStartX;
         const moveBars = Math.round(dx / 3);
@@ -486,11 +497,14 @@ export async function renderCandlestick(symbol, interval) {
 
         if (newStart !== start) {
           start = newStart;
-          // Usamos funcion interna para no re-crear todo el grafico, mas rapido
           updateChartSlice();
         }
       }
     };
+
+    candlestickChart.addEventListener('pointerdown', candlestickChart._downHandler);
+    window.addEventListener('pointerup', window._upHandler);
+    candlestickChart.addEventListener('pointermove', candlestickChart._moveHandler);
 
     // Actualizar indicadores después del gráfico (Eliminado)
 
