@@ -51,7 +51,7 @@ function aggregateKlines(rawKlines, groupSize) {
 
 // Nueva función: obtener klines de Binance correctamente (usa makeRequest)
 export async function fetchKlines(symbol, interval) {
-  const intervalMap = { '3M': '1M', '1M': '1M', '1w': '1w', '5d': '1d', '3d': '3d', '1d': '1d', '4h': '4h', '1h': '1h', '15m': '15m', '5m': '5m', '1m': '1m' };
+  const intervalMap = { '3M': '1M', '1M': '1M', '1w': '1w', '5d': '1d', '3d': '3d', '1d': '1d', '12h': '12h', '4h': '4h', '1h': '1h', '15m': '15m', '5m': '5m', '1m': '1m' };
   const qInterval = intervalMap[interval] || '1d';
   // Binance devuelve un array de arrays
   try {

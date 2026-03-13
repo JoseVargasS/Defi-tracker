@@ -73,15 +73,16 @@ document.addEventListener('DOMContentLoaded', async function () {
     const desired = [
       { key: '3M', label: '3M' },
       { key: '1M', label: '1M' },
-      { key: '1w', label: '1S' },
+      { key: '1w', label: '1w' },
       { key: '5d', label: '5D' },
       { key: '3d', label: '3D' },
       { key: '1d', label: '1D' },
+      { key: '12h', label: '12H' },
       { key: '4h', label: '4H' },
       { key: '1h', label: '1H' },
-      { key: '15m', label: '15M' },
-      { key: '5m', label: '5M' },
-      { key: '1m', label: '1M' }
+      { key: '15m', label: '15m' },
+      { key: '5m', label: '5m' },
+      { key: '1m', label: '1m' }
     ];
     intervalSelector.innerHTML = '';
     desired.forEach(d => {
