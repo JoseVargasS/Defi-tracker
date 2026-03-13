@@ -2,7 +2,7 @@
 //Contiene UI de pares, rendering de tracked pairs y renderCandlestick. Importante: usa state para variables compartidas.
 import { state } from './state.js';
 import { formatPrice } from './utils.js';
-import { fetchPrice, fetch24hStats, fetchHTXCandles, fetchKlines } from './exchange.js';
+import { fetchPrice, fetch24hStats, fetchKlines } from './exchange.js';
 import { names } from './state.js'
 import { createAdvancedTooltipPlugin } from './chartAdvanced.js';
 
@@ -171,9 +171,7 @@ export function createPairHtml(symbol, price, stats) {
     // Remove arrow icon from text as we might style it differently or keep it simple
     changeIcon = pct > 0 ? '' : (pct < 0 ? '' : '');
   }
-  state.lastPrices[symbol] = price;
-  const source = symbol === 'CTXCUSDT' ? 'HTX' : 'Binance';
-  const sourceUrl = source === 'HTX' ? 'https://www.htx.com/' : 'https://www.binance.com/';
+  const sourceUrl = 'https://www.binance.com/';
 
   // Icon generation (trying coincap assets, fallback to generic)
   const iconHtml = `<div class="coin-icon">
@@ -304,14 +302,8 @@ export async function renderCandlestick(symbol, interval) {
       return;
     }
 
-    let rawData = [];
-    if (symbol === 'CTXCUSDT') {
-      const htxData = await fetchHTXCandles(symbol, interval);
-      rawData = htxData.map(d => ({ x: d.id * 1000, o: d.open, h: d.high, l: d.low, c: d.close }));
-    } else {
-      const binData = await fetchKlines(symbol, interval);
-      rawData = (Array.isArray(binData) ? binData : []).map(d => ({ x: d[0], o: parseFloat(d[1]), h: parseFloat(d[2]), l: parseFloat(d[3]), c: parseFloat(d[4]) }));
-    }
+    const rawBinData = await fetchKlines(symbol, interval);
+    let rawData = (Array.isArray(rawBinData) ? rawBinData : []).map(d => ({ x: d[0], o: parseFloat(d[1]), h: parseFloat(d[2]), l: parseFloat(d[3]), c: parseFloat(d[4]) }));
 
     const totalDataPoints = rawData.length;
     // Recalcular zoom/start si es necesario

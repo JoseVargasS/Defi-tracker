@@ -1,25 +1,9 @@
 // js/exchange.js
-import { BINANCE_API, HTX_API } from './config.js';
+import { BINANCE_API } from './config.js';
 import { makeRequest } from './utils.js';
 import { state } from './state.js';
 
 export async function fetch24hStats(symbol) {
-  if (symbol === 'CTXCUSDT') {
-    try {
-      const res = await makeRequest(`${HTX_API}/market/detail?symbol=ctxcusdt`);
-      if (!res.tick) return {};
-      return {
-        priceChange: (res.tick.close - res.tick.open).toFixed(6),
-        priceChangePercent: ((res.tick.close - res.tick.open) / res.tick.open * 100).toFixed(2),
-        highPrice: res.tick.high,
-        lowPrice: res.tick.low,
-        volume: res.tick.amount,
-        quoteVolume: res.tick.vol,
-      };
-    } catch {
-      return {};
-    }
-  }
   try {
     const res = await makeRequest(`${BINANCE_API}/ticker/24hr?symbol=${symbol}`);
     return res;
@@ -29,28 +13,12 @@ export async function fetch24hStats(symbol) {
 }
 
 export async function fetchPrice(symbol) {
-  if (symbol === 'CTXCUSDT') {
-    try {
-      const res = await makeRequest(`${HTX_API}/market/detail/merged?symbol=ctxcusdt`);
-      return res.tick && res.tick.close ? res.tick.close : '0.00';
-    } catch {
-      return '0.00';
-    }
-  }
   try {
     const res = await makeRequest(`${BINANCE_API}/ticker/price?symbol=${symbol}`);
     return res.price;
   } catch {
     return '0.00';
   }
-}
-
-export async function fetchHTXCandles(_symbol, interval) {
-  const map = { '1d': '1day', '3d': '3day', '4h': '4hour', '1h': '60min', '15m': '15min', '5m': '5min', '1m': '1min' };
-  const period = map[interval] || '1day';
-  const res = await makeRequest(`${HTX_API}/market/history/kline?period=${period}&size=2000&symbol=ctxcusdt`);
-  const data = res;
-  return (data.data || []).reverse();
 }
 
 // Nueva función: obtener klines de Binance correctamente (usa makeRequest)
