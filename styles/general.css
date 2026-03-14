@@ -11,9 +11,16 @@ body {
 #app {
   margin: 0;
   background: #000000;
-  padding: clamp(16px, 4vw, 32px);
+  padding: clamp(12px, 3vw, 32px);
   box-sizing: border-box;
   overflow-x: hidden;
+  width: 100%;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 header {

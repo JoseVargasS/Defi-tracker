@@ -216,7 +216,7 @@ export async function loadTx() {
       let plPct = usdHist ? (pl / usdHist) * 100 : 0;
       let plColor = pl > 0 ? '#1ecb81' : (pl < 0 ? '#e74c3c' : '#aaa');
       
-      let amountDetail = noData ? `<div class='tx-detail' style='color:#e74c3c;'>Sin datos históricos</div>` : `<div class='tx-detail'>$${usdHist.toLocaleString(undefined, { maximumFractionDigits: 2 })} (1 ${sym} = $${priceHist ? priceHist.toFixed(4) : '-'})</div>`;
+      let amountDetail = noData ? `<div class='tx-detail' style='color:#888;'>Sin datos históricos</div>` : `<div class='tx-detail'>$${usdHist.toLocaleString(undefined, { maximumFractionDigits: 2 })} (1 ${sym} = $${priceHist ? priceHist.toFixed(4) : '-'})</div>`;
       
       const row = document.createElement('tr');
       row.className = 'tx-list-row';

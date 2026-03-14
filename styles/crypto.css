@@ -348,13 +348,20 @@
   grid-area: crypto;
   width: 100%;
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: 1fr 300px; /* Reduced from 340px */
   grid-template-rows: auto 1fr;
   grid-template-areas:
     "chart search"
     "chart list";
-  gap: 24px;
+  gap: 20px;
   align-items: start;
+}
+
+@media (max-width: 1200px) {
+  .crypto-section {
+    grid-template-columns: 1fr 260px;
+    gap: 16px;
+  }
 }
 
 /* Header/Search Area */

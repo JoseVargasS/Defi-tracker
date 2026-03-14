@@ -3,121 +3,160 @@
    =============================== */
 
 /* ---- Tablets (pantallas medianas) ---- */
+/* ---- Tablets (pantallas medianas) ---- */
 @media (max-width: 1024px) {
   .main-grid {
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 28px;
-    padding: 20px;
-  }
-
-  .crypto-section {
-    flex: 1 1 100%;
-    max-width: 100%;
-    min-width: auto;
-  }
-
-  .wallet-section,
-  #eth-transactions-section {
-    flex: 1 1 45%;
-    max-width: 48%;
-  }
-}
-
-/* ---- Móviles (pantallas pequeñas) ---- */
-@media (max-width: 768px) {
-  .main-grid {
+    display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
     gap: 24px;
-    padding: 16px;
-    border-radius: 16px;
+    padding: 20px;
   }
 
   .crypto-section,
   .wallet-section,
   #eth-transactions-section {
-    flex: 1 1 100%;
-    max-width: 95%;
-  }
-
-  .main-logo-title h1 {
-    font-size: 1.6rem;
-  }
-
-  .main-logo-title img {
-    width: 36px;
-    height: 36px;
-  }
-
-  .tracked-pair {
-    grid-template-columns: 36px 1fr auto;
-    padding: 8px 10px;
-    min-height: 48px;
-  }
-
-  .tracked-pair .coin-icon {
-    width: 32px;
-    height: 32px;
-  }
-
-  .delete-btn {
-    display: none !important;
-  }
-
-  #candlestick-chart {
-    height: 350px !important;
-  }
-
-  .wallet-section .card {
-    padding: 20px;
-  }
-
-  .wallet-totals {
-    text-align: center;
-    align-items: center;
-  }
-
-  .wallet-total-usd {
-    font-size: 1.8rem;
-  }
-
-  .input-group {
-    flex-direction: column;
-  }
-
-  #btnFetchWallet {
+    max-width: 100%;
     width: 100%;
+  }
+
+  .crypto-section {
+    order: -1; /* Keep crypto on top for tablet if preferred, or adjust as needed */
   }
 }
 
-/* ---- Pantallas muy pequeñas ---- */
-@media (max-width: 480px) {
+/* ---- Móviles (pantallas pequeñas) ---- */
+@media (max-width: 768px) {
   #app {
     padding: 12px;
   }
 
   .main-grid {
-    gap: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
     padding: 12px;
   }
 
+  .crypto-section,
   .wallet-section,
   #eth-transactions-section {
     max-width: 100%;
+    width: 100%;
+  }
+
+  .main-logo-title h1 {
+    font-size: 1.4rem;
+  }
+
+  .main-logo-title img {
+    width: 32px;
+    height: 32px;
+  }
+
+  .main-logo-title {
+    gap: 10px;
+  }
+
+  .tracked-pair {
+    grid-template-columns: 40px 1fr auto;
+    padding: 10px;
+    min-height: 50px;
+    gap: 8px;
+  }
+
+  .tracked-pair .coin-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .delete-btn {
+    display: flex !important; /* Ensure it shows, but maybe smaller */
+    width: 28px;
+    height: 28px;
+    margin-left: 4px;
+  }
+
+  #candlestick-chart {
+    height: 300px !important;
+  }
+
+  .wallet-section .card {
+    padding: 12px;
+  }
+
+  .wallet-totals {
+    text-align: center;
+    align-items: center;
+    padding: 10px;
+    border-left: none;
+    border-bottom: 3px solid #00b07c;
+    border-radius: 0 0 8px 8px;
+  }
+
+  .wallet-total-usd {
+    font-size: 1.6rem;
+  }
+
+  .input-group {
+    flex-direction: row; /* Keep it horizontal if possible, or vertical if too tight */
+  }
+
+  #pair-form {
+    gap: 8px;
+  }
+
+  #pair-search {
+    padding: 10px 14px;
+    font-size: 0.9rem;
+  }
+}
+
+/* ---- Pantallas muy pequeñas ---- */
+@media (max-width: 480px) {
+  .main-logo-title h1 {
+    font-size: 1.2rem;
   }
 
   .crypto-section {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto;
-    grid-template-areas:
-      "search"
-      "list";
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Centered */
+    gap: 16px;
+    width: 100%;
+  }
+
+  #pair-form,
+  #tracked-pairs {
+    width: 100%;
+    max-width: 400px; /* Limit width for harmony on mobile */
+    margin: 0 auto;
   }
 
   #pair-details {
-    grid-area: chart;
-    display: none;
+    padding: 16px;
+    min-height: 450px;
+  }
+
+  #pair-price {
+    font-size: 1.4rem;
+  }
+
+  .interval-selector {
+    justify-content: center;
+  }
+
+  .interval-selector button {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+  }
+
+  .tracked-pair .coin-symbol {
+    font-size: 0.9rem !important;
+  }
+
+  .tracked-pair .pair-price {
+    font-size: 0.9rem;
   }
 
   .tracked-pair .pair-change {
@@ -126,7 +165,82 @@
     min-width: 50px;
   }
 
-  .tracked-pair .pair-price {
-    font-size: 0.9rem;
+  .tx-list-row,
+  .tx-list-tags {
+    grid-template-columns: 0.7fr 0.8fr 1.25fr 1.25fr; /* Optimized ratios for 100% width */
+    font-size: 0.72rem;
+    gap: 4px;
+    padding: 10px 4px; /* Tight padding to maximize content area */
+    width: 100%;
+    box-sizing: border-box;
+    justify-items: center; /* Center items in their grid cells */
+    align-items: center;
+  }
+
+  .tx-list-tags td {
+    font-size: 0.62rem;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    text-align: center;
+    width: 100%;
+  }
+
+  .tx-list-row .tx-usd,
+  .tx-list-tags td:nth-child(4) {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center; /* Centered */
+    text-align: center;
+    min-width: 0; /* Important to prevent forcing overflow */
+    width: 100%;
+  }
+
+  .tx-type {
+    min-width: 0;
+    width: 100%;
+    padding: 3px 2px;
+    font-size: 0.62rem;
+    text-align: center;
+    border-radius: 4px;
+  }
+
+  .tx-token {
+    min-width: 0;
+    width: 100%;
+    font-size: 0.75rem;
+    gap: 3px;
+    justify-content: center; /* Center content of the token cell */
+  }
+
+  .tx-token img {
+    width: 16px;
+    height: 16px;
+  }
+
+  .tx-amount {
+    font-size: 0.78rem;
+    text-align: center;
+    width: 100%;
+    white-space: nowrap; /* Prevent sign and number from splitting */
+  }
+
+  .tx-detail {
+    font-size: 0.6rem;
+    line-height: 1.1;
+    text-align: center;
+    width: 100%;
+    word-break: break-word; /* Prevent overflow of long details */
+  }
+
+  .tx-usd div:first-child {
+    font-weight: 700;
+    font-size: 0.78rem;
+  }
+
+  .tx-usd div:nth-child(2),
+  .tx-usd div:nth-child(3) {
+    font-size: 0.7rem;
+    font-weight: 600;
   }
 }
