@@ -182,13 +182,16 @@ export async function loadTx() {
 
       let icon = '';
 
-      if (sym === 'USUAL') icon = '<img src="https://etherscan.io/token/images/usualtoken_32.svg" alt="USUAL" id="icon">';
-      else if (sym === 'USUALX') icon = '<img src="https://etherscan.io/token/images/usualx_32.png" alt="USUALX" id="icon">';
-      else if (sym === 'USD0') icon = '<img src="https://static.coinstats.app/coins/usual-usdE9O.png" alt="USD0" id="icon">';
-      else if (sym === 'BIO') icon = '<img src="https://etherscan.io/token/images/bioxyz_32.png" alt="BIO" id="icon">';
-      else if (sym === 'ETH') icon = '<img src="./images/Eth-icon-purple.png" alt="ETH" id="icon">';
-      else if (sym === 'USDC') icon = '<img src="https://etherscan.io/token/images/usdc_ofc_32.svg" alt="USDC" id="icon">';
-      else if (sym === 'USDT') icon = '<img src="https://etherscan.io/token/images/tethernew_32.svg" alt="USDT" id="icon">';
+      // Skip near-zero ETH txs (contract interactions with no meaningful value)
+      if (sym === 'ETH' && amtFloat < 0.00001) continue;
+
+      if (sym === 'USUAL') icon = '<img src="https://etherscan.io/token/images/usualtoken_32.svg" alt="USUAL" class="tx-icon">';
+      else if (sym === 'USUALX') icon = '<img src="https://etherscan.io/token/images/usualx_32.png" alt="USUALX" class="tx-icon">';
+      else if (sym === 'USD0') icon = '<img src="https://static.coinstats.app/coins/usual-usdE9O.png" alt="USD0" class="tx-icon">';
+      else if (sym === 'BIO') icon = '<img src="https://etherscan.io/token/images/bioxyz_32.png" alt="BIO" class="tx-icon">';
+      else if (sym === 'ETH') icon = '<img src="./images/Eth-icon-purple.png" alt="ETH" class="tx-icon">';
+      else if (sym === 'USDC') icon = '<img src="https://etherscan.io/token/images/usdc_ofc_32.svg" alt="USDC" class="tx-icon">';
+      else if (sym === 'USDT') icon = '<img src="https://etherscan.io/token/images/tethernew_32.svg" alt="USDT" class="tx-icon">';
 
       let amountText = isSent ? `<span class='tx-amount sent'>- ${amtFormatted}</span>` : `<span class='tx-amount'>+ ${amtFormatted}</span>`;
 

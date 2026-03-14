@@ -1,10 +1,14 @@
 #tracked-pairs {
   margin-top: 12px;
-  background: linear-gradient(145deg, #23262f 0%, #1e2129 100%);
+  background: rgba(22, 24, 32, 0.55);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   border-radius: 16px;
   padding: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  border: 1px solid #2d313a;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .tracked-pair {
@@ -139,12 +143,15 @@
 }
 
 #pair-details {
-  background: #000000;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border-radius: 4px;
   padding: 24px;
   margin-top: 0;
   position: relative;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
 #pair-details.hidden {
@@ -383,15 +390,20 @@
 #tracked-pairs {
   grid-area: list;
   margin-top: 0;
-  background: linear-gradient(145deg, #23262f 0%, #1e2129 100%);
+  background: rgba(22, 24, 32, 0.55);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   border-radius: 16px;
   padding: 0;
   overflow: hidden;
   max-height: 800px;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: #353945 #23262f;
-  border: 1px solid #2d313a;
+  scrollbar-color: #353945 transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 #tracked-pairs::-webkit-scrollbar {
@@ -537,14 +549,17 @@
 #pair-details {
   grid-area: chart;
   margin-top: 0;
-  background: transparent;
-  border-radius: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: 16px;
   padding: 24px;
   height: 100%;
   min-height: 700px;
   display: flex !important;
   flex-direction: column;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
 #chart-wrapper {

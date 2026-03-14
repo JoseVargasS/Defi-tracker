@@ -13,11 +13,11 @@
 }
 
 #eth-transactions-section header h1 {
-  font-size: 1.4rem;
-  font-weight: 700;
+  font-size: 1.2rem;
+  font-weight: 600;
   color: #fff;
-  padding-bottom: 12px;
-  border-bottom: 2px solid #2d313a;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   display: inline-block;
 }
 
@@ -35,16 +35,20 @@
 }
 
 #eth-transactions-content {
-  padding: 16px;
-  background: linear-gradient(145deg, #23262f 0%, #1e2129 100%);
+  padding: 20px 18px 16px 18px;
+  background: rgba(22, 24, 32, 0.35);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-radius: 16px;
-  max-height: 900px;
+  max-height: 600px;
   overflow-y: auto;
   overflow-x: auto;
   scrollbar-width: thin;
-  scrollbar-color: #353945 #23262f;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  border: 1px solid #2d313a;
+  scrollbar-color: #353945 transparent;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 #eth-transactions-content::-webkit-scrollbar {
@@ -82,7 +86,7 @@
 #txTable {
   display: table;
   width: 100%;
-  background: #1a1d26;
+  background: rgba(26, 29, 38, 0.3);
   border-radius: 12px;
   overflow: hidden;
   font-size: 1.05em;
@@ -147,10 +151,10 @@
     rgba(45, 49, 58, 0.8) 0%,
     transparent 100%
   );
-  font-size: 1.08em;
-  padding: 12px 0 6px 0;
-  border-top: 2px solid #45b26b;
-  margin-top: 8px;
+  font-size: 1em;
+  padding: 10px 10px 5px 10px;
+  border-top: 1px solid #2d313a;
+  margin-top: 4px;
 }
 
 .tx-list-row,
@@ -160,8 +164,8 @@
   justify-content: start;
   align-items: center;
   gap: 0;
-  padding: 8px 0 8px 0;
-  border-bottom: 1px solid #2d313a;
+  padding: 9px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
   font-size: 1.05em;
   min-width: 0;
   width: 100%;
@@ -173,13 +177,15 @@
 }
 
 .tx-list-tags {
-  font-size: 0.8em;
-  color: #aaa;
-  font-weight: 500;
+  font-size: 0.75em;
+  color: #555;
+  font-weight: 600;
   background: none;
-  border-bottom: none;
-  margin-bottom: 2px;
-  padding: 0 0 2px 0;
+  border-bottom: 1px solid #2d313a;
+  margin-bottom: 0;
+  padding: 4px 10px 4px 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
 }
 
 .tx-type,
@@ -195,16 +201,27 @@
 }
 
 .tx-token {
-  min-width: 100px;
-  font-size: 1em;
+  min-width: 70px;
+  font-size: 0.95rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   padding: 4px 6px;
   box-sizing: border-box;
+}
+
+/* Constrain token icons inside transaction rows */
+.tx-token img,
+.tx-icon {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: block;
 }
 
 .tx-type {
