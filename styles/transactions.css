@@ -3,7 +3,7 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 555px;
+  max-width: 660px;
   min-width: 320px;
   border-radius: 16px;
 }
@@ -40,7 +40,7 @@
   border-radius: 16px;
   max-height: 900px;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: auto;
   scrollbar-width: thin;
   scrollbar-color: #353945 #23262f;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
@@ -156,7 +156,7 @@
 .tx-list-row,
 .tx-list-tags {
   display: grid;
-  grid-template-columns: 95px 115px 185px 115px;
+  grid-template-columns: 90px 110px 1fr 130px;
   justify-content: start;
   align-items: center;
   gap: 0;

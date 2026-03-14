@@ -156,6 +156,72 @@ export const crosshairPlugin = {
   }
 };
 
+// currentPricePlugin para mostrar el precio actual en el eje Y constantemente
+export const currentPricePlugin = {
+  id: 'currentPrice',
+  afterDraw(chart) {
+    if (!chart.data.datasets || !chart.data.datasets[0] || !chart.data.datasets[0].data || chart.data.datasets[0].data.length === 0) return;
+
+    // Obtener la última vela renderizada
+    const data = chart.data.datasets[0].data;
+    const lastCandle = data[data.length - 1];
+    if (!lastCandle || lastCandle.c === undefined) return;
+
+    const ctx = chart.ctx;
+    const yValue = lastCandle.c;
+    const yPixel = chart.scales.y.getPixelForValue(yValue);
+
+    // Colores OKX
+    const isUp = lastCandle.c >= lastCandle.o;
+    const bgColor = isUp ? '#00b07c' : '#f23645';
+
+    ctx.save();
+
+    // Dibujar línea horizontal
+    ctx.strokeStyle = bgColor;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 2]);
+    ctx.beginPath();
+    ctx.moveTo(chart.chartArea.left, yPixel);
+    ctx.lineTo(chart.chartArea.right, yPixel);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Dibujar el tag del precio
+    const yLabel = typeof yValue === 'number' ? yValue.toFixed(4) : String(yValue);
+    ctx.font = 'bold 12px Inter, Arial';
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center';
+
+    const labelWidth = ctx.measureText(yLabel).width + 16;
+    const labelHeight = 22;
+    // Posicionar en el margen derecho, fuera del área del gráfico
+    let boxX = chart.chartArea.right;
+    let boxY = yPixel - labelHeight / 2;
+
+    // Ajustar verticalmente si se sale de los límites
+    if (boxY < chart.chartArea.top) boxY = chart.chartArea.top;
+    if (boxY + labelHeight > chart.chartArea.bottom) boxY = chart.chartArea.bottom - labelHeight;
+
+    ctx.fillStyle = bgColor;
+    ctx.beginPath();
+    // Forma de flecha apuntando hacia la izquierda
+    ctx.moveTo(boxX, boxY + labelHeight / 2);
+    ctx.lineTo(boxX + 6, boxY);
+    ctx.lineTo(boxX + labelWidth, boxY);
+    ctx.lineTo(boxX + labelWidth, boxY + labelHeight);
+    ctx.lineTo(boxX + 6, boxY + labelHeight);
+    ctx.closePath();
+    ctx.fill();
+
+    // Texto del precio
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillText(yLabel, boxX + 6 + (labelWidth - 6) / 2, boxY + labelHeight / 2);
+
+    ctx.restore();
+  }
+};
+
 // helpers UI
 function getCoinName(symbol) {
   const base = symbol.replace('USDT', '').toUpperCase();
@@ -359,7 +425,7 @@ export async function renderCandlestick(symbol, interval) {
     } catch (e) {
       if (state.chartInstance) { try { state.chartInstance.destroy(); } catch (err) { } state.chartInstance = null; }
     }
-    
+
     // Cleanup previous robust listeners to prevent stacking
     if (candlestickChart._zoomHandler) candlestickChart.removeEventListener('wheel', candlestickChart._zoomHandler);
     if (candlestickChart._downHandler) candlestickChart.removeEventListener('pointerdown', candlestickChart._downHandler);
@@ -388,8 +454,8 @@ export async function renderCandlestick(symbol, interval) {
             label: 'Bollinger Upper',
             data: visibleBands.upper,
             type: 'line',
-            borderColor: 'rgba(24, 191, 255, 0.4)', // Cyan suave
-            borderWidth: 1,
+            borderColor: 'rgba(255, 235, 59, 0.8)', // Amarillo brillante
+            borderWidth: 1.3,
             pointRadius: 0,
             fill: false,
             order: 2
@@ -398,19 +464,19 @@ export async function renderCandlestick(symbol, interval) {
             label: 'Bollinger Lower',
             data: visibleBands.lower,
             type: 'line',
-            borderColor: 'rgba(24, 191, 255, 0.4)', // Cyan suave
-            backgroundColor: 'rgba(24, 191, 255, 0.03)',
-            borderWidth: 1,
+            borderColor: 'rgba(255, 235, 59, 0.8)', // Amarillo brillante
+            backgroundColor: 'rgba(255, 235, 59, 0.05)', // Relleno amarillo muy transparente
+            borderWidth: 1.3,
             pointRadius: 0,
-            fill: 1,
+            fill: '-1', // Rellena hasta el dataset anterior (Bollinger Upper)
             order: 2
           },
           {
             label: 'Bollinger Middle',
             data: visibleBands.middle,
             type: 'line',
-            borderColor: 'rgba(240, 185, 11, 0.4)', // Amarillo suave
-            borderWidth: 1,
+            borderColor: 'rgba(230, 38, 25, 0.67)', // Amarillo suave (SMA)
+            borderWidth: 1.3,
             pointRadius: 0,
             fill: false,
             order: 2
@@ -437,7 +503,7 @@ export async function renderCandlestick(symbol, interval) {
           }
         }
       },
-      plugins: [crosshairPlugin, createAdvancedTooltipPlugin()]
+      plugins: [crosshairPlugin, createAdvancedTooltipPlugin(), currentPricePlugin]
     });
 
     state.chartInstance._symbol = symbol;
@@ -478,16 +544,16 @@ export async function renderCandlestick(symbol, interval) {
     candlestickChart.addEventListener('wheel', candlestickChart._zoomHandler, { passive: false });
 
     let isPanning = false, panStartX = 0, panStartIndex = start;
-    
-    candlestickChart._downHandler = (e) => { 
-      isPanning = true; 
-      panStartX = e.clientX; 
-      panStartIndex = start; 
+
+    candlestickChart._downHandler = (e) => {
+      isPanning = true;
+      panStartX = e.clientX;
+      panStartIndex = start;
       candlestickChart.setPointerCapture(e.pointerId); // Ensure move events are captured even outside the bounds initially
     };
-    
+
     window._upHandler = () => { isPanning = false; };
-    
+
     candlestickChart._moveHandler = (e) => {
       if (isPanning) {
         const dx = e.clientX - panStartX;
@@ -553,7 +619,24 @@ export async function updatePairInfo(symbol) {
   const price = await fetchPrice(symbol);
   const stats = await fetch24hStats(symbol);
   updatePairUI(symbol, price, stats);
-  // Removido await renderCandlestick para evitar que la gráfica se reinicie cada 5 segundos
+
+  // Update real-time candle
+  if (state.chartInstance && state.chartInstance._symbol === symbol) {
+    const data = state.chartInstance.data.datasets[0].data;
+    if (data && data.length > 0) {
+      const lastCandle = data[data.length - 1];
+      const parsedPrice = parseFloat(price);
+
+      // Update high and low dynamically based on real-time price
+      if (parsedPrice > lastCandle.h) lastCandle.h = parsedPrice;
+      if (parsedPrice < lastCandle.l) lastCandle.l = parsedPrice;
+
+      // Update the close to current price
+      lastCandle.c = parsedPrice;
+
+      state.chartInstance.update('none'); // Update without animation
+    }
+  }
 }
 
 export async function showPairDetails(symbol) {
