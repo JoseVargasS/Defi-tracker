@@ -2,7 +2,7 @@
 //Importa todo y hace el DOMContentLoaded (reemplaza el app.js original).
 import { state } from './state.js';
 import { formatPrice } from './utils.js';
-import { fetchCoinsList, fetchPrice, fetch24hStats } from './exchange.js';
+import { fetchCoinsList, fetchPrice, fetch24hStats, fetchPriceBatch, fetch24hStatsBatch } from './exchange.js';
 import { renderTrackedPairs, addTrackedPair, removeTrackedPair, createPairHtml, renderCandlestick } from './pairs.js';
 import { renderSavedWallets, saveWallet, fetchAndRenderWallet, getSavedWallets } from './wallet.js';
 import { fetchAndShowTransactions, loadTx } from './transactions.js';
@@ -135,28 +135,33 @@ document.addEventListener('DOMContentLoaded', async function () {
   // Render tracked pairs
   renderTrackedPairs();
 
-  // Auto-update prices every 5s
+  // Auto-update prices every 5s — ONE batch request for all pairs
   setInterval(async () => {
     try {
-      const priceSpans = document.querySelectorAll('.pair-price');
-      for (const span of priceSpans) {
-        const symbol = span.getAttribute('data-symbol');
-        const price = await fetchPrice(symbol);
-        const stats = await fetch24hStats(symbol);
+      const symbols = state.tracked.slice(); // snapshot
+      if (!symbols.length) return;
 
-        // solo actualizar texto y clases, NO reemplazar el nodo para no perder listeners o estado
-        span.textContent = formatPrice(price);
+      // Two batch requests instead of N×2 individual ones
+      const [prices, stats] = await Promise.all([
+        fetchPriceBatch(symbols),
+        fetch24hStatsBatch(symbols)
+      ]);
 
-        if (stats && stats.priceChangePercent !== undefined) {
-          const pct = parseFloat(stats.priceChangePercent);
-          const change = pct.toFixed(2) + '%';
+      for (const symbol of symbols) {
+        const price = prices[symbol];
+        const stat = stats[symbol];
+
+        const priceSpan = document.querySelector(`.pair-price[data-symbol="${symbol}"]`);
+        if (priceSpan && price) priceSpan.textContent = formatPrice(price);
+
+        if (stat && stat.priceChangePercent !== undefined) {
+          const pct = parseFloat(stat.priceChangePercent);
           const changeClass = pct > 0 ? 'positive' : (pct < 0 ? 'negative' : '');
           const changeIcon = pct > 0 ? '<span class="arrow">▲</span>' : (pct < 0 ? '<span class="arrow">▼</span>' : '');
-
           const changeSpan = document.querySelector(`.pair-change[data-symbol="${symbol}"]`);
           if (changeSpan) {
             changeSpan.className = `pair-change ${changeClass}`;
-            changeSpan.innerHTML = `${changeIcon}${change}`;
+            changeSpan.innerHTML = `${changeIcon}${pct.toFixed(2)}%`;
           }
         }
       }

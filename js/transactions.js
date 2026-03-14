@@ -145,6 +145,21 @@ export async function loadTx() {
   // Pre-load images if possible (optional, helps layout stability)
   // await Promise.all(slice.filter(tx => tx.tokenSymbol === 'USUAL' || tx.tokenSymbol === 'USUALX' ...).map(...));
 
+  // Pre-fetch all prices in parallel for this slice
+  const pricePromises = slice.map(async (tx) => {
+    const sym = tx.tokenSymbol || tx.symbol || 'ETH';
+    if (sym.toUpperCase() === 'ERC20') return { current: 0, historical: null };
+    
+    const txDateObj = new Date(Number(tx.timeStamp) * 1000);
+    const [current, historical] = await Promise.all([
+      getTokenPriceUSD(sym === 'ETH' ? 'ETH' : sym),
+      getHistoricalTokenPriceUSD(sym === 'ETH' ? 'ETH' : sym, txDateObj)
+    ]);
+    return { current, historical };
+  });
+
+  const pricesData = await Promise.all(pricePromises);
+
   for (const date of Object.keys(grouped)) {
     const [day, month, year] = date.split('/');
     const dateObj = new Date(`${year}-${month}-${day}`);
@@ -162,29 +177,26 @@ export async function loadTx() {
     tbody.appendChild(tagsRow);
 
     for (const tx of grouped[date]) {
+      const txIndex = slice.findIndex(t => t === tx);
+      const { current: priceUSD, historical: priceHistRaw } = pricesData[txIndex];
+      let priceHist = priceHistRaw;
+
       const addr = currentTxAddress ? currentTxAddress.toLowerCase() : '';
       const isSent = tx.from && tx.from.toLowerCase() === addr;
       const type = isSent ? 'Sent' : 'Received';
 
-      // Determinar símbolo y decimales:
-      // Para ERC20: tokenSymbol, tokenDecimal (Etherscan tokentx)
-      // Para nativas: tokenSymbol puede no existir -> asumimos ETH y 18 decimales
-      const sym = tx.tokenSymbol || tx.symbol || (tx.input && tx.input !== '0x' ? 'ETH' : 'ETH') || 'ETH';
+      const sym = tx.tokenSymbol || tx.symbol || 'ETH';
       const dec = (tx.tokenDecimal !== undefined && tx.tokenDecimal !== null) ? Number(tx.tokenDecimal) : ((tx.decimals !== undefined && tx.decimals !== null) ? Number(tx.decimals) : 18);
       const rawValue = tx.value ?? tx.tokenValue ?? tx.amount ?? '0';
 
-      // formato de cantidad para mostrar
       const displayDecimals = sym === 'ETH' ? 6 : 4;
       const amtFormatted = formatDisplayAmount(String(rawValue || '0'), dec, displayDecimals);
-
-      // para cálculos USD, obtener float (puede perder precision en casos ~extremos)
       const amtFloat = amountToFloat(String(rawValue || '0'), dec);
 
-      let icon = '';
-
-      // Skip near-zero ETH txs (contract interactions with no meaningful value)
+      // Skip near-zero ETH txs
       if (sym === 'ETH' && amtFloat < 0.00001) continue;
 
+      let icon = '';
       if (sym === 'USUAL') icon = '<img src="https://etherscan.io/token/images/usualtoken_32.svg" alt="USUAL" class="tx-icon">';
       else if (sym === 'USUALX') icon = '<img src="https://etherscan.io/token/images/usualx_32.png" alt="USUALX" class="tx-icon">';
       else if (sym === 'USD0') icon = '<img src="https://static.coinstats.app/coins/usual-usdE9O.png" alt="USD0" class="tx-icon">';
@@ -195,41 +207,19 @@ export async function loadTx() {
 
       let amountText = isSent ? `<span class='tx-amount sent'>- ${amtFormatted}</span>` : `<span class='tx-amount'>+ ${amtFormatted}</span>`;
 
-      // Precio actual y histórico
-      let priceUSD = 0;
-      try {
-        if (sym.toUpperCase() !== 'ERC20') {
-          priceUSD = await getTokenPriceUSD(sym === 'ETH' ? 'ETH' : sym);
-        }
-      } catch (e) {
-        priceUSD = 0;
-      }
-
       let usd = amtFloat * (priceUSD || 0);
-      const txDateObj = new Date(Number(tx.timeStamp) * 1000);
-
-      let priceHist = null;
-      try {
-        if (sym.toUpperCase() !== 'ERC20') {
-          priceHist = await getHistoricalTokenPriceUSD(sym === 'ETH' ? 'ETH' : sym, txDateObj);
-        }
-      } catch (e) {
-        priceHist = null;
-      }
-
       let noData = false;
-
       if (!priceHist || priceHist === 0) { noData = true; priceHist = null; }
 
       let usdHist = amtFloat * (priceHist || 0);
       let pl = usd - usdHist;
       let plPct = usdHist ? (pl / usdHist) * 100 : 0;
       let plColor = pl > 0 ? '#1ecb81' : (pl < 0 ? '#e74c3c' : '#aaa');
+      
       let amountDetail = noData ? `<div class='tx-detail' style='color:#e74c3c;'>Sin datos históricos</div>` : `<div class='tx-detail'>$${usdHist.toLocaleString(undefined, { maximumFractionDigits: 2 })} (1 ${sym} = $${priceHist ? priceHist.toFixed(4) : '-'})</div>`;
+      
       const row = document.createElement('tr');
-
       row.className = 'tx-list-row';
-
       row.innerHTML = `
         <td class='tx-type${isSent ? ' sent' : ''}'>${type}</td>
         <td class='tx-token'>${icon}${sym}</td>
@@ -240,7 +230,6 @@ export async function loadTx() {
           <div style="font-size:0.85em; color:${plColor}; line-height:1.1;">(${plPct >= 0 ? '+' : ''}${plPct.toFixed(2)}%)</div>
         </td>
       `;
-
       tbody.appendChild(row);
     }
   }

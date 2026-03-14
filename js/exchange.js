@@ -3,15 +3,11 @@ import { BINANCE_API } from './config.js';
 import { makeRequest } from './utils.js';
 import { state } from './state.js';
 
-export async function fetch24hStats(symbol) {
-  try {
-    const res = await makeRequest(`${BINANCE_API}/ticker/24hr?symbol=${symbol}`);
-    return res;
-  } catch {
-    return {};
-  }
-}
+// ── In-memory cache for klines (60s TTL) ──────────────────────────────────────
+const _klinesCache = new Map();
+const KLINES_TTL = 60_000;
 
+// ── Single-price fetch ─────────────────────────────────────────────────────────
 export async function fetchPrice(symbol) {
   try {
     const res = await makeRequest(`${BINANCE_API}/ticker/price?symbol=${symbol}`);
@@ -21,63 +17,122 @@ export async function fetchPrice(symbol) {
   }
 }
 
-// Nueva función de agrupación de velas (klines)
+// ── Single 24h stats ───────────────────────────────────────────────────────────
+export async function fetch24hStats(symbol) {
+  try {
+    const res = await makeRequest(`${BINANCE_API}/ticker/24hr?symbol=${symbol}`);
+    return res;
+  } catch {
+    return {};
+  }
+}
+
+// ── Batch price fetch (ONE request for multiple symbols) ──────────────────────
+// Returns { BTCUSDT: "84000.00", ETHUSDT: "2100.00", ... }
+export async function fetchPriceBatch(symbols) {
+  if (!symbols || symbols.length === 0) return {};
+  try {
+    const param = encodeURIComponent(JSON.stringify(symbols));
+    const res = await makeRequest(`${BINANCE_API}/ticker/price?symbols=${param}`);
+    const map = {};
+    if (Array.isArray(res)) {
+      for (const item of res) map[item.symbol] = item.price;
+    }
+    return map;
+  } catch {
+    return {};
+  }
+}
+
+// ── Batch 24h stats fetch (ONE request for multiple symbols) ──────────────────
+export async function fetch24hStatsBatch(symbols) {
+  if (!symbols || symbols.length === 0) return {};
+  try {
+    const param = encodeURIComponent(JSON.stringify(symbols));
+    const res = await makeRequest(`${BINANCE_API}/ticker/24hr?symbols=${param}`);
+    const map = {};
+    if (Array.isArray(res)) {
+      for (const item of res) map[item.symbol] = item;
+    }
+    return map;
+  } catch {
+    return {};
+  }
+}
+
+// ── Klines aggregation helper ──────────────────────────────────────────────────
 function aggregateKlines(rawKlines, groupSize) {
   const aggregated = [];
   for (let i = 0; i < rawKlines.length; i += groupSize) {
     const chunk = rawKlines.slice(i, i + groupSize);
-    if (chunk.length < groupSize && aggregated.length > 0) {
-      // Opcional: ignorar el último trozo si está incompleto, pero para tiempo real es mejor mostrarlo
-    }
-
-    const openTime = chunk[0][0]; // timestamp de inicio
+    const openTime = chunk[0][0];
     const open = parseFloat(chunk[0][1]);
     const close = parseFloat(chunk[chunk.length - 1][4]);
-
-    let high = -Infinity;
-    let low = Infinity;
-
+    let high = -Infinity, low = Infinity;
     for (const candle of chunk) {
       const h = parseFloat(candle[2]);
       const l = parseFloat(candle[3]);
       if (h > high) high = h;
       if (l < low) low = l;
     }
-    // Formato de retorno emulando Binance: [timestamp, open, high, low, close]
     aggregated.push([openTime, open.toString(), high.toString(), low.toString(), close.toString()]);
   }
   return aggregated;
 }
 
-// Nueva función: obtener klines de Binance correctamente (usa makeRequest)
+// ── fetchKlines with in-memory cache ──────────────────────────────────────────
 export async function fetchKlines(symbol, interval) {
-  const intervalMap = { '3M': '1M', '1M': '1M', '1w': '1w', '5d': '1d', '3d': '3d', '1d': '1d', '12h': '12h', '4h': '4h', '1h': '1h', '15m': '15m', '5m': '5m', '1m': '1m' };
+  const intervalMap = {
+    '3M': '1M', '1M': '1M', '1w': '1w', '5d': '1d',
+    '3d': '3d', '1d': '1d', '12h': '12h', '4h': '4h',
+    '1h': '1h', '15m': '15m', '5m': '5m', '1m': '1m'
+  };
   const qInterval = intervalMap[interval] || '1d';
-  // Binance devuelve un array de arrays
+  const cacheKey = `${symbol}-${interval}`;
+  const now = Date.now();
+
+  // Return cached data if fresh
+  const cached = _klinesCache.get(cacheKey);
+  if (cached && now - cached.ts < KLINES_TTL) return cached.data;
+
   try {
-    // Si la agrupación es grande (ej: 3M con velas de 1M), pedimos más historial si queremos 500 velas finales = 1500 limit
-    const limit = interval === '3M' ? 1000 : (interval === '5d' ? 1000 : 1000);
-    const res = await makeRequest(`${BINANCE_API}/klines?symbol=${symbol}&interval=${qInterval}&limit=${limit}`);
-
+    const res = await makeRequest(`${BINANCE_API}/klines?symbol=${symbol}&interval=${qInterval}&limit=1000`);
     let klines = res;
-    if (interval === '3M') {
-      klines = aggregateKlines(klines, 3);
-    } else if (interval === '5d') {
-      klines = aggregateKlines(klines, 5);
-    }
+    if (interval === '3M') klines = aggregateKlines(klines, 3);
+    else if (interval === '5d') klines = aggregateKlines(klines, 5);
 
-    return klines; // normalmente es un array
+    _klinesCache.set(cacheKey, { data: klines, ts: now });
+    return klines;
   } catch (e) {
     console.error('fetchKlines error', e);
     return [];
   }
 }
 
+// ── Invalidate klines cache entry (call when switching pair/interval) ──────────
+export function invalidateKlinesCache(symbol, interval) {
+  _klinesCache.delete(`${symbol}-${interval}`);
+}
+
+// ── fetchCoinsList with 24h localStorage cache ─────────────────────────────────
+const COINS_CACHE_KEY = 'coinsListCache';
+const COINS_CACHE_TTL = 24 * 60 * 60 * 1000;
+
 export async function fetchCoinsList() {
   try {
+    const raw = localStorage.getItem(COINS_CACHE_KEY);
+    if (raw) {
+      const { ts, data } = JSON.parse(raw);
+      if (Date.now() - ts < COINS_CACHE_TTL) {
+        state.coinsList = data;
+        return;
+      }
+    }
     const res = await makeRequest(`${BINANCE_API}/exchangeInfo`);
-    const data = res;
-    state.coinsList = (data.symbols || []).filter(s => s.quoteAsset === 'USDT').map(s => ({ symbol: s.symbol, base: s.baseAsset, quote: s.quoteAsset }));
+    state.coinsList = (res.symbols || [])
+      .filter(s => s.quoteAsset === 'USDT')
+      .map(s => ({ symbol: s.symbol, base: s.baseAsset, quote: s.quoteAsset }));
+    localStorage.setItem(COINS_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: state.coinsList }));
   } catch (error) {
     console.error('Error fetching coins list:', error);
     state.coinsList = [];
