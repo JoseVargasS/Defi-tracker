@@ -535,11 +535,24 @@ export async function renderCandlestick(symbol, interval) {
       }
     };
 
+    let zoomRafPending = false;
     candlestickChart._zoomHandler = (e) => {
       e.preventDefault();
+      const prevZoom = state.chartZoom;
       if (e.deltaY < 0) state.chartZoom = Math.max(10, state.chartZoom - 10);
       else state.chartZoom = Math.min(state.chartZoom + 10, rawData.length);
-      renderCandlestick(symbol, interval);
+
+      // Keep the right edge of the visible window fixed when zooming
+      const currentEnd = start + prevZoom;
+      start = Math.max(0, Math.min(currentEnd - state.chartZoom, rawData.length - state.chartZoom));
+
+      if (!zoomRafPending) {
+        zoomRafPending = true;
+        requestAnimationFrame(() => {
+          updateChartSlice();
+          zoomRafPending = false;
+        });
+      }
     };
     candlestickChart.addEventListener('wheel', candlestickChart._zoomHandler, { passive: false });
 
