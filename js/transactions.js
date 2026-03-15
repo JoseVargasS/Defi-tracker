@@ -1,13 +1,17 @@
 // js/transactions.js
-// Carga y render de transacciones (ERC-20 + ETH nativo)
-// Ahora: hace 2 llamadas (tokentx y txlist), une y muestra ambas.
+// Carga y render de transacciones (ERC-20 + ETH nativo para ETH, Coinstats para Base)
 
-import { ETH_API, ETH_KEY } from './config.js';
+import { ETH_API, ETH_KEY, COINSTATS_API, COINSTATS_API_KEY } from './config.js';
 import { makeRequest } from './utils.js';
 import { getTokenPriceUSD, getHistoricalTokenPriceUSD } from './prices.js';
 import { monthNames } from './state.js'
 
-let txList = [], offset = 0;
+// Per-network state
+const networks = {
+  'ethereum': { txList: [], offset: 0, tbodyId: 'eth-txBody', tableId: 'eth-txTable', btnId: 'btnLoadMoreEth' },
+  'base-wallet': { txList: [], offset: 0, tbodyId: 'base-txBody', tableId: 'base-txTable', btnId: 'btnLoadMoreBase' }
+};
+
 let currentTxAddress = null;
 
 /* ------------------ Helpers de cantidad/formatos ------------------ */
@@ -15,13 +19,6 @@ function safeIsIntegerString(s) {
   return typeof s === 'string' && /^\d+$/.test(s);
 }
 
-/**
- * formatDisplayAmount
- * Devuelve una string formateada para mostrar: usa BigInt cuando el valor es grande.
- * valueStr: string entero en la unidad mínima (wei / token smallest unit)
- * decimals: número de decimales del token (p. ej. 18)
- * displayDecimals: cuántos decimales mostrar en la UI (ej. ETH -> 6, tokens -> 4)
- */
 function formatDisplayAmount(valueStr, decimals = 18, displayDecimals = 4) {
   try {
     const vStr = String(valueStr || '0');
@@ -33,41 +30,34 @@ function formatDisplayAmount(valueStr, decimals = 18, displayDecimals = 4) {
       return n.toLocaleString(undefined, { minimumFractionDigits: disp, maximumFractionDigits: disp });
     }
 
-    // Si la cadena no es un entero decimal, fallback
     if (!safeIsIntegerString(vStr)) {
       const n = Number(vStr) || 0;
       return n.toLocaleString(undefined, { minimumFractionDigits: disp, maximumFractionDigits: disp });
     }
 
-    // Si pequeño, usar Number
     if (vStr.length <= 15) {
       const n = Number(vStr) / Math.pow(10, dec);
       return n.toLocaleString(undefined, { minimumFractionDigits: disp, maximumFractionDigits: disp });
     }
 
-    // BigInt path
     if (typeof BigInt !== 'undefined') {
       const big = BigInt(vStr);
       const base = BigInt(10) ** BigInt(dec);
       const intPart = big / base;
       let fracPart = big % base;
 
-      // obtener dígitos suficientes para redondear
-      const needed = disp + 1; // un dígito extra para redondeo
+      const needed = disp + 1;
       let fracFull = fracPart.toString().padStart(dec, '0').slice(0, Math.max(needed, 0));
-      // si fracFull es menor que needed, rellenar con ceros
       if (fracFull.length < needed) fracFull = fracFull.padEnd(needed, '0');
 
       let fracToRound = fracFull.slice(0, disp);
       const roundDigit = Number(fracFull.charAt(disp) || '0');
 
-      // redondeo simple
       if (roundDigit >= 5) {
         let carry = BigInt(1);
         let fracNum = BigInt(fracToRound || '0') + carry;
         const maxFrac = BigInt(10) ** BigInt(disp);
         if (fracNum >= maxFrac) {
-          // carry to int part
           const newInt = (intPart + BigInt(1)).toString();
           return `${newInt}.${'0'.repeat(disp)}`;
         } else {
@@ -80,7 +70,6 @@ function formatDisplayAmount(valueStr, decimals = 18, displayDecimals = 4) {
       }
     }
 
-    // Fallback si no hay BigInt
     const fallback = Number(vStr) / Math.pow(10, dec);
     return fallback.toLocaleString(undefined, { minimumFractionDigits: disp, maximumFractionDigits: disp });
   } catch (e) {
@@ -88,12 +77,6 @@ function formatDisplayAmount(valueStr, decimals = 18, displayDecimals = 4) {
   }
 }
 
-/**
- * amountToFloat
- * Convierte valueStr + decimals a Number (pérdida de precisión posible si es muy grande).
- * Se usa para cálculos USD; si el número es extremadamente grande puede perder precisión,
- * pero en la práctica para balances ETH/ERC-20 esto es aceptable.
- */
 function amountToFloat(valueStr, decimals = 18) {
   try {
     const vStr = String(valueStr || '0');
@@ -101,14 +84,12 @@ function amountToFloat(valueStr, decimals = 18) {
     if (vStr.length <= 15) {
       return Number(vStr) / Math.pow(10, Number(decimals));
     }
-    // BigInt path: construir string y parseFloat
     if (typeof BigInt !== 'undefined') {
       const dec = Number(decimals || 18);
       const big = BigInt(vStr);
       const base = BigInt(10) ** BigInt(dec);
       const intPart = big / base;
       let fracPart = big % base;
-      // Obtener 8 decimales para float (suficiente para USD multiplications)
       const showDecimals = 8;
       let fracStr = fracPart.toString().padStart(dec, '0').slice(0, showDecimals).padEnd(showDecimals, '0');
       const combined = `${intPart.toString()}.${fracStr}`;
@@ -122,43 +103,47 @@ function amountToFloat(valueStr, decimals = 18) {
 
 /* ------------------ Render / carga ------------------ */
 
-export async function loadTx() {
-  const tbody = document.getElementById('txBody');
+export async function loadTx(networkId = 'ethereum') {
+  const net = networks[networkId];
+  const tbody = document.getElementById(net.tbodyId);
   if (!tbody) return;
 
-  const slice = txList.slice(offset, offset + 10);
+  const slice = net.txList.slice(net.offset, net.offset + 10);
   const grouped = {};
 
   for (const tx of slice) {
     if (!tx || !tx.timeStamp) continue;
-
-    // tx.timeStamp puede ser string o número (segundos)
     const tsNum = Number(tx.timeStamp);
     if (!tsNum) continue;
 
     const date = new Date(tsNum * 1000).toLocaleDateString('es-ES');
-
     if (!grouped[date]) grouped[date] = [];
     grouped[date].push(tx);
   }
 
-  // Pre-load images if possible (optional, helps layout stability)
-  // await Promise.all(slice.filter(tx => tx.tokenSymbol === 'USUAL' || tx.tokenSymbol === 'USUALX' ...).map(...));
-
-  // Pre-fetch all prices in parallel for this slice
-  const pricePromises = slice.map(async (tx) => {
+  const pricesData = [];
+  for (let i = 0; i < slice.length; i++) {
+    const tx = slice[i];
     const sym = tx.tokenSymbol || tx.symbol || 'ETH';
-    if (sym.toUpperCase() === 'ERC20') return { current: 0, historical: null };
+    if (sym.toUpperCase() === 'ERC20') {
+      pricesData.push({ status: 'fulfilled', value: { current: 0, historical: null } });
+      continue;
+    }
     
     const txDateObj = new Date(Number(tx.timeStamp) * 1000);
-    const [current, historical] = await Promise.all([
-      getTokenPriceUSD(sym === 'ETH' ? 'ETH' : sym),
-      getHistoricalTokenPriceUSD(sym === 'ETH' ? 'ETH' : sym, txDateObj)
-    ]);
-    return { current, historical };
-  });
+    // Add a small delay between each price fetch to avoid burst 429s
+    if (i > 0) await new Promise(r => setTimeout(r, 100));
 
-  const pricesData = await Promise.all(pricePromises);
+    try {
+      const [current, historical] = await Promise.all([
+        getTokenPriceUSD(sym === 'ETH' ? 'ETH' : sym),
+        getHistoricalTokenPriceUSD(sym === 'ETH' ? 'ETH' : sym, txDateObj)
+      ]);
+      pricesData.push({ status: 'fulfilled', value: { current, historical } });
+    } catch (e) {
+      pricesData.push({ status: 'rejected', reason: e });
+    }
+  }
 
   for (const date of Object.keys(grouped)) {
     const [day, month, year] = date.split('/');
@@ -171,14 +156,14 @@ export async function loadTx() {
     tbody.appendChild(dateDiv);
 
     const tagsRow = document.createElement('tr');
-
     tagsRow.className = 'tx-list-tags';
     tagsRow.innerHTML = `<td>tipo</td><td>token</td><td>cantidad</td><td>USD / P&L</td>`;
     tbody.appendChild(tagsRow);
 
     for (const tx of grouped[date]) {
       const txIndex = slice.findIndex(t => t === tx);
-      const { current: priceUSD, historical: priceHistRaw } = pricesData[txIndex];
+      const pResult = pricesData[txIndex];
+      const { current: priceUSD, historical: priceHistRaw } = (pResult && pResult.status === 'fulfilled') ? pResult.value : { current: 0, historical: null };
       let priceHist = priceHistRaw;
 
       const addr = currentTxAddress ? currentTxAddress.toLowerCase() : '';
@@ -189,24 +174,26 @@ export async function loadTx() {
       const dec = (tx.tokenDecimal !== undefined && tx.tokenDecimal !== null) ? Number(tx.tokenDecimal) : ((tx.decimals !== undefined && tx.decimals !== null) ? Number(tx.decimals) : 18);
       const rawValue = tx.value ?? tx.tokenValue ?? tx.amount ?? '0';
 
-      const displayDecimals = sym === 'ETH' ? 6 : 4;
+      const displayDecimals = (sym === 'ETH' || sym === 'BASE') ? 6 : 4;
       const amtFormatted = formatDisplayAmount(String(rawValue || '0'), dec, displayDecimals);
       const amtFloat = amountToFloat(String(rawValue || '0'), dec);
 
-      // Skip near-zero ETH txs
       if (sym === 'ETH' && amtFloat < 0.00001) continue;
 
       let icon = '';
-      if (sym === 'USUAL') icon = '<img src="https://etherscan.io/token/images/usualtoken_32.svg" alt="USUAL" class="tx-icon">';
-      else if (sym === 'USUALX') icon = '<img src="https://etherscan.io/token/images/usualx_32.png" alt="USUALX" class="tx-icon">';
-      else if (sym === 'USD0') icon = '<img src="https://static.coinstats.app/coins/usual-usdE9O.png" alt="USD0" class="tx-icon">';
-      else if (sym === 'BIO') icon = '<img src="https://etherscan.io/token/images/bioxyz_32.png" alt="BIO" class="tx-icon">';
-      else if (sym === 'ETH') icon = '<img src="./images/Eth-icon-purple.png" alt="ETH" class="tx-icon">';
-      else if (sym === 'USDC') icon = '<img src="https://etherscan.io/token/images/usdc_ofc_32.svg" alt="USDC" class="tx-icon">';
-      else if (sym === 'USDT') icon = '<img src="https://etherscan.io/token/images/tethernew_32.svg" alt="USDT" class="tx-icon">';
+      if (tx.imgUrl) {
+          icon = `<img src="${tx.imgUrl}" alt="${sym}" class="tx-icon" onerror="this.style.display='none'">`;
+      } else {
+          if (sym === 'USUAL') icon = '<img src="https://etherscan.io/token/images/usualtoken_32.svg" alt="USUAL" class="tx-icon">';
+          else if (sym === 'USUALX') icon = '<img src="https://etherscan.io/token/images/usualx_32.png" alt="USUALX" class="tx-icon">';
+          else if (sym === 'USD0') icon = '<img src="https://static.coinstats.app/coins/usual-usdE9O.png" alt="USD0" class="tx-icon">';
+          else if (sym === 'BIO') icon = '<img src="https://etherscan.io/token/images/bioxyz_32.png" alt="BIO" class="tx-icon">';
+          else if (sym === 'ETH') icon = '<img src="./images/Eth-icon-purple.png" alt="ETH" class="tx-icon">';
+          else if (sym === 'USDC') icon = '<img src="https://etherscan.io/token/images/usdc_ofc_32.svg" alt="USDC" class="tx-icon">';
+          else if (sym === 'USDT') icon = '<img src="https://etherscan.io/token/images/tethernew_32.svg" alt="USDT" class="tx-icon">';
+      }
 
       let amountText = isSent ? `<span class='tx-amount sent'>- ${amtFormatted}</span>` : `<span class='tx-amount'>+ ${amtFormatted}</span>`;
-
       let usd = amtFloat * (priceUSD || 0);
       let noData = false;
       if (!priceHist || priceHist === 0) { noData = true; priceHist = null; }
@@ -234,99 +221,152 @@ export async function loadTx() {
     }
   }
 
-  offset += 10;
-  const txTableEl = document.getElementById('txTable');
-
+  net.offset += 10;
+  const txTableEl = document.getElementById(net.tableId);
   if (txTableEl) txTableEl.style.display = 'table';
 
-  const btnMore = document.getElementById('btnLoadMore');
-
+  const btnMore = document.getElementById(net.btnId);
   if (btnMore) {
-    if (offset < txList.length) btnMore.parentElement.style.display = 'block';
+    if (net.offset < net.txList.length) btnMore.parentElement.style.display = 'block';
     else btnMore.parentElement.style.display = 'none';
   }
 }
 
 /* ------------------ Fetch y merge (ERC20 + native) ------------------ */
 
-export async function fetchAndShowTransactions(address) {
-  offset = 0; txList = []; currentTxAddress = address;
-  const tbody = document.getElementById('txBody');
+export async function fetchAndShowTransactions(address, networkId = 'ethereum') {
+  if (networkId === 'all') {
+      await Promise.all([
+          fetchAndShowTransactions(address, 'ethereum'),
+          fetchAndShowTransactions(address, 'base-wallet')
+      ]);
+      return;
+  }
 
+  const net = networks[networkId];
+  net.offset = 0; net.txList = []; currentTxAddress = address;
+  const tbody = document.getElementById(net.tbodyId);
   if (tbody) tbody.innerHTML = '';
-
   if (!address) return;
 
   try {
-    // Hacemos ambas llamadas en paralelo:
-    //  - tokentx: ERC20 token transfers
-    //  - txlist: normal transactions (incluye transfers de ETH)
-    const tokentxUrl = `${ETH_API}?chainid=1&module=account&action=tokentx&address=${address}&sort=desc&apikey=${ETH_KEY}`;
-    const txlistUrl = `${ETH_API}?chainid=1&module=account&action=txlist&address=${address}&sort=desc&apikey=${ETH_KEY}`;
+    if (networkId === 'ethereum') {
+      const tokentxUrl = `${ETH_API}?chainid=1&module=account&action=tokentx&address=${address}&sort=desc&apikey=${ETH_KEY}`;
+      const txlistUrl = `${ETH_API}?chainid=1&module=account&action=txlist&address=${address}&sort=desc&apikey=${ETH_KEY}`;
 
-    const [r1, r2] = await Promise.allSettled([makeRequest(tokentxUrl), makeRequest(txlistUrl)]);
+      const [r1, r2] = await Promise.allSettled([makeRequest(tokentxUrl), makeRequest(txlistUrl)]);
+      let tokenTxs = (r1.status === 'fulfilled' && r1.value && Array.isArray(r1.value.result)) ? r1.value.result : [];
+      let normalTxs = (r2.status === 'fulfilled' && r2.value && Array.isArray(r2.value.result)) ? r2.value.result : [];
 
-    let tokenTxs = [];
-    let normalTxs = [];
+      const nativeAsTokenStyle = normalTxs
+        .filter(t => t && t.timeStamp)
+        .map(t => Object.assign({}, t, {
+            tokenSymbol: 'ETH',
+            tokenDecimal: 18,
+            value: t.value ?? '0',
+        }));
 
-    if (r1.status === 'fulfilled' && r1.value && Array.isArray(r1.value.result)) {
-      tokenTxs = r1.value.result;
-    }
-
-    if (r2.status === 'fulfilled' && r2.value && Array.isArray(r2.value.result)) {
-      normalTxs = r2.value.result;
-    }
-
-    // Normalizar / marcar native txs para que tengan campos similares a tokentx
-    const nativeAsTokenStyle = normalTxs
-      .filter(t => t && t.timeStamp) // asegurarnos
-      .map(t => {
-        // Algunos txlist pueden tener contractAddress vacío; valor nativo viene en 'value' (wei)
-        return Object.assign({}, t, {
-          // Forzamos campos esperados por la UI
-          tokenSymbol: 'ETH',
-          tokenDecimal: 18,
-          // value ya existe (wei). Dejamos como string
-          value: t.value ?? '0',
-          // margen: conservar propiedades from/to/timeStamp/hash
-        });
+      const combined = [...tokenTxs, ...nativeAsTokenStyle];
+      const seen = new Set();
+      const dedup = [];
+      for (const tx of combined) {
+        const key = `${tx.hash || tx.transactionHash || tx.txHash}-${(tx.tokenSymbol || '')}-${String(tx.value || '')}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          const normalized = Object.assign({}, tx);
+          normalized.hash = normalized.hash || normalized.transactionHash || normalized.txHash || normalized.hash;
+          normalized.timeStamp = normalized.timeStamp || normalized.timestamp || normalized.time || normalized.blockNumber || normalized.timeStamp;
+          dedup.push(normalized);
+        }
+      }
+      dedup.sort((a, b) => (Number(b.timeStamp) || 0) - (Number(a.timeStamp) || 0));
+      net.txList = dedup;
+    } 
+    else if (networkId === 'base-wallet') {
+      // Fetch from Coinstats for Base
+      console.log('Fetching Base transactions for:', address);
+      // Use blockchain=base as it is more standard than connectionId for public queries
+      const url = `${COINSTATS_API}/wallet/transactions?address=${address}&blockchain=base`;
+      let response = await fetch(url, {
+          headers: { 'X-API-KEY': COINSTATS_API_KEY }
       });
+      
+      console.log('Base transactions response status:', response.status);
+      
+      // Handle 409 Conflict: Not synced
+      if (response.status === 409) {
+          console.log('Transactions not synced, triggering sync with PATCH...');
+          // PATCH needs address and blockchain in query params based on tests
+          const patchUrl = `${COINSTATS_API}/wallet/transactions?address=${address}&blockchain=base`;
+          const patchRes = await fetch(patchUrl, {
+              method: 'PATCH',
+              headers: { 'X-API-KEY': COINSTATS_API_KEY }
+          });
+          console.log('PATCH response:', patchRes.status);
+          
+          await new Promise(r => setTimeout(r, 2000));
+          response = await fetch(url, {
+              headers: { 'X-API-KEY': COINSTATS_API_KEY }
+          });
+      }
 
-    // Combinar: tokens + native txs
-    const combined = [
-      ...tokenTxs,
-      ...nativeAsTokenStyle
-    ];
+      if (response.ok) {
+          const data = await response.json();
+          console.log('Base transactions data received:', data);
+          
+          const rawResult = data.result || [];
+          const flattenedTxList = [];
 
-    // Eliminar duplicados simples (mismo hash y mismo tokenSymbol y mismo value)
-    const seen = new Set();
-    const dedup = [];
-    for (const tx of combined) {
-      const key = `${tx.hash || tx.transactionHash || tx.txHash}-${(tx.tokenSymbol || '')}-${String(tx.value || '')}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        // normalizar nombres comunes de hash/timeStamp
-        const normalized = Object.assign({}, tx);
-        normalized.hash = normalized.hash || normalized.transactionHash || normalized.txHash || normalized.hash;
-        normalized.timeStamp = normalized.timeStamp || normalized.timestamp || normalized.time || normalized.blockNumber || normalized.timeStamp;
-        dedup.push(normalized);
+          for (const res of rawResult) {
+              const hash = res.hash ? res.hash.id : (res.id || '0x');
+              const timeStamp = res.date ? Math.floor(new Date(res.date).getTime() / 1000) : 0;
+              
+              if (res.transactions && res.transactions.length) {
+                  for (const innerTx of res.transactions) {
+                      if (innerTx.items && innerTx.items.length) {
+                          for (const item of innerTx.items) {
+                              flattenedTxList.push({
+                                  hash: hash,
+                                  timeStamp: timeStamp,
+                                  from: item.fromAddress || '',
+                                  to: item.toAddress || '',
+                                  tokenSymbol: item.coin ? item.coin.symbol : '?',
+                                  tokenDecimal: 0, // CoinStats 'count' is already float
+                                  value: item.count || 0,
+                                  imgUrl: (item.coin && item.coin.icon) || (res.mainContent && res.mainContent.coinIcons && res.mainContent.coinIcons[0]) || null
+                              });
+                          }
+                      }
+                  }
+              } else {
+                  // Fallback if no transactions/items but coinData exists
+                  flattenedTxList.push({
+                      hash: hash,
+                      timeStamp: timeStamp,
+                      from: '', to: '',
+                      tokenSymbol: res.coinData ? res.coinData.symbol : '?',
+                      tokenDecimal: 0,
+                      value: res.coinData ? res.coinData.count : 0,
+                      imgUrl: (res.mainContent && res.mainContent.coinIcons && res.mainContent.coinIcons[0]) || null
+                  });
+              }
+          }
+
+          flattenedTxList.sort((a, b) => (Number(b.timeStamp) || 0) - (Number(a.timeStamp) || 0));
+          net.txList = flattenedTxList;
+          console.log('Processed Base transactions count:', net.txList.length);
+      } else {
+        const errText = await response.text();
+        console.warn('Base transactions fetch failed:', response.status, errText);
+        if (tbody) tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 20px; color: #888;">${response.status === 409 ? 'La red se está sincronizando... Refresca en unos segundos.' : 'No se pudieron cargar las transacciones de Base.'}</td></tr>`;
       }
     }
 
-    // Orden por timestamp descendente
-    dedup.sort((a, b) => {
-      const ta = Number(a.timeStamp) || 0;
-      const tb = Number(b.timeStamp) || 0;
-      return tb - ta;
-    });
-
-    txList = dedup;
-    // render inicial
-    loadTx();
+    loadTx(networkId);
   } catch (error) {
-    console.error('Error fetching transactions:', error);
+    console.error(`Error fetching ${networkId} transactions:`, error);
   }
 }
 
 // export para uso externo si necesario
-export { txList as _txListRef };
+export { networks as _networksRef };

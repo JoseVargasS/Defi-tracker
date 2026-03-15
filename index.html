@@ -61,16 +61,32 @@
           </div>
         </section>
 
-        <div id="eth-transactions-section">
-          <header>
-            <h1>Transacciones ETH/ERC20</h1>
-          </header>
-          <div id="eth-transactions-content">
-            <table id="txTable">
-              <tbody id="txBody"></tbody>
-            </table>
-            <div class="load-more">
-              <button id="btnLoadMore">Ver más</button>
+        <div class="transactions-container">
+          <div id="eth-transactions-section" class="tx-section">
+            <header>
+              <h1>Transacciones ETH/ERC20</h1>
+            </header>
+            <div id="eth-transactions-content" class="tx-content">
+              <table id="eth-txTable" class="tx-table-styled">
+                <tbody id="eth-txBody"></tbody>
+              </table>
+              <div class="load-more">
+                <button id="btnLoadMoreEth">Ver más</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="base-transactions-section" class="tx-section">
+            <header>
+              <h1>Transacciones Base</h1>
+            </header>
+            <div id="base-transactions-content" class="tx-content">
+              <table id="base-txTable" class="tx-table-styled">
+                <tbody id="base-txBody"></tbody>
+              </table>
+              <div class="load-more">
+                <button id="btnLoadMoreBase">Ver más</button>
+              </div>
             </div>
           </div>
         </div>

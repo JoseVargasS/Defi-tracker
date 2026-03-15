@@ -1,18 +1,27 @@
-#eth-transactions-section {
+.transactions-container {
   grid-area: transactions;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 24px;
   width: 100%;
-  max-width: 660px;
+  margin-top: 24px;
+}
+
+.tx-section {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   min-width: 320px;
+  max-width: 600px;
   border-radius: 16px;
 }
 
-#eth-transactions-section header {
+.tx-section header {
   margin-bottom: 16px;
 }
 
-#eth-transactions-section header h1 {
+.tx-section header h1 {
   font-size: 1.2rem;
   font-weight: 600;
   color: #fff;
@@ -34,7 +43,7 @@
   align-items: center;
 }
 
-#eth-transactions-content {
+.tx-content {
   padding: 8px 8px 8px 8px;
   background: rgba(22, 24, 32, 0.35);
   backdrop-filter: blur(20px);
@@ -51,22 +60,22 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-#eth-transactions-content::-webkit-scrollbar {
+.tx-content::-webkit-scrollbar {
   width: 8px;
 }
 
-#eth-transactions-content::-webkit-scrollbar-track {
+.tx-content::-webkit-scrollbar-track {
   background: #23262f;
   border-radius: 4px;
 }
 
-#eth-transactions-content::-webkit-scrollbar-thumb {
+.tx-content::-webkit-scrollbar-thumb {
   background-color: #353945;
   border-radius: 4px;
   border: 2px solid #23262f;
 }
 
-#eth-transactions-content::-webkit-scrollbar-thumb:hover {
+.tx-content::-webkit-scrollbar-thumb:hover {
   background-color: #45b26b;
 }
 
@@ -83,7 +92,7 @@
   word-break: break-all;
 }
 
-#txTable {
+.tx-table-styled {
   display: table;
   width: 100%;
   background: rgba(26, 29, 38, 0.3);
@@ -93,14 +102,14 @@
   border-collapse: collapse;
 }
 
-#txTable th,
-#txTable td {
+.tx-table-styled th,
+.tx-table-styled td {
   padding: 8px 10px;
   text-align: center;
   width: auto;
 }
 
-#txTable th {
+.tx-table-styled th {
   background: linear-gradient(180deg, #1e2129 0%, #181a20 100%);
   color: #aaa;
   font-weight: 600;
@@ -109,12 +118,12 @@
   letter-spacing: 0.5px;
 }
 
-#txTable tr {
+.tx-table-styled tr {
   border-bottom: 1px solid #2d313a;
   transition: background 0.2s;
 }
 
-#txTable tr:hover {
+.tx-table-styled tr:hover {
   background: rgba(69, 178, 107, 0.05);
 }
 

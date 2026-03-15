@@ -119,11 +119,11 @@ footer a:hover {
 /* Main Grid Layout */
 .main-grid {
   display: grid;
-  grid-template-columns: minmax(auto, 555px) 1fr;
-  grid-template-rows: auto 1fr;
+  grid-template-columns: 555px 1fr;
+  grid-template-rows: auto auto;
   grid-template-areas:
     "wallet crypto"
-    "transactions crypto";
+    "transactions transactions";
   align-items: start;
   gap: 24px;
   width: 100%;

@@ -35,6 +35,14 @@ export async function fetchAndRenderWallet(address) {
 
     for (let i = 0; i < SUPPORTED_CHAINS.length; i++) {
       const chain = SUPPORTED_CHAINS[i];
+      
+      // Skip chains that don't match address format
+      const isEvmAddress = address.startsWith('0x');
+      if (isEvmAddress && chain.id === 'solana') {
+          console.log('Skipping Solana fetch for EVM address');
+          chainResults.push({ chain, balances: [] });
+          continue;
+      }
 
       try {
         const url = `${COINSTATS_API}/wallet/balance?address=${address}&connectionId=${chain.id}`;
@@ -153,7 +161,7 @@ export async function fetchAndRenderWallet(address) {
     // Llamar transacciones después de un delay
     try {
       await delay(4000); // Wait 4 seconds before fetching transactions
-      await fetchAndShowTransactions(address);
+      await fetchAndShowTransactions(address, 'all');
     } catch (e) { console.warn('Error loading transactions:', e); }
   } catch (err) {
     console.error('fetchAndRenderWallet error', err);

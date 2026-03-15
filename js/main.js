@@ -237,8 +237,11 @@ document.addEventListener('DOMContentLoaded', async function () {
     });
   }
 
-  const btnLoadMore = document.getElementById('btnLoadMore');
-  if (btnLoadMore) btnLoadMore.addEventListener('click', loadTx);
+  const btnLoadMoreEth = document.getElementById('btnLoadMoreEth');
+  if (btnLoadMoreEth) btnLoadMoreEth.addEventListener('click', () => loadTx('ethereum'));
+
+  const btnLoadMoreBase = document.getElementById('btnLoadMoreBase');
+  if (btnLoadMoreBase) btnLoadMoreBase.addEventListener('click', () => loadTx('base-wallet'));
 
   // Exponer globalmente si otras partes del HTML/JS esperan funciones globales
   window.fetchAndShowTransactions = fetchAndShowTransactions;
