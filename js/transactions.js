@@ -251,8 +251,10 @@ export async function fetchAndShowTransactions(address, networkId = 'ethereum') 
 
   try {
     if (networkId === 'ethereum') {
-      const tokentxUrl = `${ETH_API}?chainid=1&module=account&action=tokentx&address=${address}&sort=desc&apikey=${ETH_KEY}`;
-      const txlistUrl = `${ETH_API}?chainid=1&module=account&action=txlist&address=${address}&sort=desc&apikey=${ETH_KEY}`;
+      const page = 1;
+      const offset = 1000;
+      const tokentxUrl = `${ETH_API}?chainid=1&module=account&action=tokentx&address=${address}&sort=desc&page=${page}&offset=${offset}&apikey=${ETH_KEY}`;
+      const txlistUrl = `${ETH_API}?chainid=1&module=account&action=txlist&address=${address}&sort=desc&page=${page}&offset=${offset}&apikey=${ETH_KEY}`;
 
       const [r1, r2] = await Promise.allSettled([makeRequest(tokentxUrl), makeRequest(txlistUrl)]);
       let tokenTxs = (r1.status === 'fulfilled' && r1.value && Array.isArray(r1.value.result)) ? r1.value.result : [];
@@ -283,33 +285,28 @@ export async function fetchAndShowTransactions(address, networkId = 'ethereum') 
       net.txList = dedup;
     } 
     else if (networkId === 'base-wallet') {
-      // Fetch from Coinstats for Base
       console.log('Fetching Base transactions for:', address);
-      // Use blockchain=base as it is more standard than connectionId for public queries
-      const url = `${COINSTATS_API}/wallet/transactions?address=${address}&blockchain=base`;
+      
+      // First, trigger sync to get latest transactions
+      const patchUrl = `${COINSTATS_API}/wallet/transactions?address=${address}&connectionId=base-wallet`;
+      console.log('Triggering Base transactions sync...');
+      const patchRes = await fetch(patchUrl, {
+          method: 'PATCH',
+          headers: { 'X-API-KEY': COINSTATS_API_KEY }
+      });
+      console.log('PATCH response:', patchRes.status);
+      
+      // Wait for sync to complete
+      await new Promise(r => setTimeout(r, 5000));
+      
+      // Now fetch the transactions
+      const url = `${COINSTATS_API}/wallet/transactions?address=${address}&connectionId=base-wallet&limit=100`;
       let response = await fetch(url, {
           headers: { 'X-API-KEY': COINSTATS_API_KEY }
       });
       
       console.log('Base transactions response status:', response.status);
       
-      // Handle 409 Conflict: Not synced
-      if (response.status === 409) {
-          console.log('Transactions not synced, triggering sync with PATCH...');
-          // PATCH needs address and blockchain in query params based on tests
-          const patchUrl = `${COINSTATS_API}/wallet/transactions?address=${address}&blockchain=base`;
-          const patchRes = await fetch(patchUrl, {
-              method: 'PATCH',
-              headers: { 'X-API-KEY': COINSTATS_API_KEY }
-          });
-          console.log('PATCH response:', patchRes.status);
-          
-          await new Promise(r => setTimeout(r, 2000));
-          response = await fetch(url, {
-              headers: { 'X-API-KEY': COINSTATS_API_KEY }
-          });
-      }
-
       if (response.ok) {
           const data = await response.json();
           console.log('Base transactions data received:', data);
