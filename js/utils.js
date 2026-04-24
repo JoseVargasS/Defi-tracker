@@ -16,11 +16,18 @@ export function showMessage(el, msg, type = 'info') {
   el.innerHTML = `<div class="msg ${type}">${msg}</div>`;
 }
 
-export async function makeRequest(url, options = {}) {
+export async function makeRequest(url, options = {}, retryCount = 0) {
   try {
     const headers = { 'Accept': 'application/json', ...(options.headers || {}) };
     if (url.startsWith(COINSTATS_API)) headers['X-API-KEY'] = COINSTATS_API_KEY;
     const res = await fetch(url, { ...options, headers });
+    
+    if (res.status === 429 && retryCount < 1) {
+      // Rate limited: wait 2 seconds and retry once
+      await new Promise(r => setTimeout(r, 2000));
+      return makeRequest(url, options, retryCount + 1);
+    }
+
     if (!res.ok) {
       const txt = await res.text().catch(() => '');
       throw new Error(`HTTP ${res.status} ${res.statusText} ${txt}`);
@@ -29,9 +36,11 @@ export async function makeRequest(url, options = {}) {
     return data;
   } catch (err) {
     // Only log errors that aren't 400 (Bad Request) for unknown tokens
-    if (!err.message || !err.message.includes('HTTP 400')) {
+    // And don't log 429 if we're still going to fail after retry
+    if (!err.message || (!err.message.includes('HTTP 400') && !err.message.includes('HTTP 429'))) {
       console.error('makeRequest error', url, err);
     }
     throw err;
   }
 }
+

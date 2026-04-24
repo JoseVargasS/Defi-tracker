@@ -125,25 +125,25 @@ export async function loadTx(networkId = 'ethereum') {
   for (let i = 0; i < slice.length; i++) {
     const tx = slice[i];
     const sym = tx.tokenSymbol || tx.symbol || 'ETH';
-    if (sym.toUpperCase() === 'ERC20') {
-      pricesData.push({ status: 'fulfilled', value: { current: 0, historical: null } });
-      continue;
-    }
-    
     const txDateObj = new Date(Number(tx.timeStamp) * 1000);
-    // Add a small delay between each price fetch to avoid burst 429s
-    if (i > 0) await new Promise(r => setTimeout(r, 100));
 
     try {
-      const [current, historical] = await Promise.all([
-        getTokenPriceUSD(sym === 'ETH' ? 'ETH' : sym),
-        getHistoricalTokenPriceUSD(sym === 'ETH' ? 'ETH' : sym, txDateObj)
-      ]);
+      // Use sequential fetching with a small delay to avoid 429 errors
+      const current = await getTokenPriceUSD(sym === 'ETH' ? 'ETH' : sym);
+      const historical = await getHistoricalTokenPriceUSD(sym === 'ETH' ? 'ETH' : sym, txDateObj);
+      
       pricesData.push({ status: 'fulfilled', value: { current, historical } });
     } catch (e) {
       pricesData.push({ status: 'rejected', reason: e });
     }
+    
+    // Small delay between transactions to avoid burst rate limits
+    if (i < slice.length - 1) {
+      await new Promise(r => setTimeout(r, 150));
+    }
   }
+
+
 
   for (const date of Object.keys(grouped)) {
     const [day, month, year] = date.split('/');
@@ -205,11 +205,18 @@ export async function loadTx(networkId = 'ethereum') {
       
       let amountDetail = noData ? `<div class='tx-detail' style='color:#888;'>Sin datos históricos</div>` : `<div class='tx-detail'>$${usdHist.toLocaleString(undefined, { maximumFractionDigits: 2 })} (1 ${sym} = $${priceHist ? priceHist.toFixed(4) : '-'})</div>`;
       
+      const txDateObj = new Date(Number(tx.timeStamp) * 1000);
+      const timeStr = txDateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
       const row = document.createElement('tr');
       row.className = 'tx-list-row';
       row.innerHTML = `
-        <td class='tx-type${isSent ? ' sent' : ''}'>${type}</td>
+        <td class='tx-type${isSent ? ' sent' : ''}'>
+          <div>${type}</div>
+          <div class='tx-time'>${timeStr}</div>
+        </td>
         <td class='tx-token'>${icon}${sym}</td>
+
         <td>${amountText}${amountDetail}</td>
         <td class='tx-usd'>
           <div>$${usd.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>

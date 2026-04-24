@@ -13,8 +13,10 @@ export const state = {
   candleRenderLock: false,
   detailInterval: null,
   coinsList: [],
-  loadingRequests: {}
+  loadingRequests: {},
+  currentPairPrice: null
 };
+
 
 export const names = { BTC: 'BTC', ETH: 'ETH', USDT: 'Tether', BNB: 'BNB', SOL: 'Solana', ADA: 'Cardano', XRP: 'XRP', DOGE: 'Dogecoin', MATIC: 'Polygon', TRX: 'TRON', LINK: 'Chainlink', LTC: 'Litecoin', DOT: 'Polkadot', SHIB: 'Shiba Inu', USDC: 'USD Coin', AVAX: 'Avalanche', OP: 'Optimism', ARB: 'Arbitrum', PEPE: 'Pepe' };
 

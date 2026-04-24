@@ -162,17 +162,24 @@ export const currentPricePlugin = {
   afterDraw(chart) {
     if (!chart.data.datasets || !chart.data.datasets[0] || !chart.data.datasets[0].data || chart.data.datasets[0].data.length === 0) return;
 
-    // Obtener la última vela renderizada
-    const data = chart.data.datasets[0].data;
-    const lastCandle = data[data.length - 1];
-    if (!lastCandle || lastCandle.c === undefined) return;
+    // Usar el precio en tiempo real si está disponible, sino la última vela visible
+    let yValue = state.currentPairPrice;
+    
+    if (yValue === null || yValue === undefined) {
+      const data = chart.data.datasets[0].data;
+      const lastCandle = data[data.length - 1];
+      if (!lastCandle || lastCandle.c === undefined) return;
+      yValue = lastCandle.c;
+    }
 
     const ctx = chart.ctx;
-    const yValue = lastCandle.c;
     const yPixel = chart.scales.y.getPixelForValue(yValue);
 
-    // Colores OKX
-    const isUp = lastCandle.c >= lastCandle.o;
+    // Colores OKX (usar el color de la última vela real para la línea si es posible)
+    // O simplemente usar verde/rojo basado en el cambio del día si no tenemos la vela
+    const data = chart.data.datasets[0].data;
+    const lastCandle = data[data.length - 1];
+    const isUp = lastCandle ? lastCandle.c >= lastCandle.o : true;
     const bgColor = isUp ? '#00b07c' : '#f23645';
 
     ctx.save();
@@ -221,6 +228,7 @@ export const currentPricePlugin = {
     ctx.restore();
   }
 };
+
 
 // helpers UI
 function getCoinName(symbol) {
@@ -373,7 +381,11 @@ export async function renderCandlestick(symbol, interval) {
     const rawBinData = await fetchKlines(symbol, interval);
     let rawData = (Array.isArray(rawBinData) ? rawBinData : []).map(d => ({ x: d[0], o: parseFloat(d[1]), h: parseFloat(d[2]), l: parseFloat(d[3]), c: parseFloat(d[4]) }));
 
+    // Guardar el timestamp de la última vela real para comparaciones en updatePairInfo
+    const fullLastTimestamp = rawData.length > 0 ? rawData[rawData.length - 1].x : null;
+
     const totalDataPoints = rawData.length;
+
     // Recalcular zoom/start si es necesario
     let start = Math.max(0, totalDataPoints - state.chartZoom);
     let end = totalDataPoints;
@@ -395,6 +407,7 @@ export async function renderCandlestick(symbol, interval) {
         if (state.chartInstance.data.datasets[0]) {
           const ds = state.chartInstance.data.datasets[0];
           ds.data = visibleData;
+          state.chartInstance._fullLastTimestamp = fullLastTimestamp;
 
           // Re-force colors on update to ensure solidity
           const upC = '#00b07c'; // OKX Green
@@ -506,6 +519,7 @@ export async function renderCandlestick(symbol, interval) {
       plugins: [crosshairPlugin, createAdvancedTooltipPlugin(), currentPricePlugin]
     });
 
+    state.chartInstance._fullLastTimestamp = fullLastTimestamp;
     state.chartInstance._symbol = symbol;
     state.chartInstance._interval = interval;
 
@@ -633,24 +647,28 @@ export async function updatePairInfo(symbol) {
   const stats = await fetch24hStats(symbol);
   updatePairUI(symbol, price, stats);
 
+  const parsedPrice = parseFloat(price);
+  state.currentPairPrice = parsedPrice; // Guardar para el plugin de línea horizontal
+
   // Update real-time candle
   if (state.chartInstance && state.chartInstance._symbol === symbol) {
     const data = state.chartInstance.data.datasets[0].data;
     if (data && data.length > 0) {
       const lastCandle = data[data.length - 1];
-      const parsedPrice = parseFloat(price);
+      
+      // SOLO actualizar si esta vela es realmente la última del set de datos completo
+      // Comparamos el timestamp con el último disponible en rawData (guardado en el instance)
+      if (state.chartInstance._fullLastTimestamp && lastCandle.x === state.chartInstance._fullLastTimestamp) {
+        if (parsedPrice > lastCandle.h) lastCandle.h = parsedPrice;
+        if (parsedPrice < lastCandle.l) lastCandle.l = parsedPrice;
+        lastCandle.c = parsedPrice;
+      }
 
-      // Update high and low dynamically based on real-time price
-      if (parsedPrice > lastCandle.h) lastCandle.h = parsedPrice;
-      if (parsedPrice < lastCandle.l) lastCandle.l = parsedPrice;
-
-      // Update the close to current price
-      lastCandle.c = parsedPrice;
-
-      state.chartInstance.update('none'); // Update without animation
+      state.chartInstance.update('none'); // Update without animation (renders the horizontal line via plugin)
     }
   }
 }
+
 
 export async function showPairDetails(symbol) {
   const pairDetails = document.getElementById('pair-details');
