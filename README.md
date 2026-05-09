@@ -288,7 +288,7 @@ Generar el archivo local que el navegador si puede leer:
 node scripts/generate-config.mjs
 ```
 
-`index.html` carga `js/bootstrap.js`; ese modulo intenta importar `js/config.local.js` antes de arrancar `js/main.js`. Si no generas ese archivo localmente o no lo generas en el artefacto de GitHub Pages, Binance seguira funcionando con endpoints publicos, pero CoinStats/Etherscan no tendran API key y la seccion wallet mostrara un aviso de configuracion.
+`index.html` carga `js/bootstrap.js`; ese modulo intenta importar `js/config.local.js` antes de arrancar `js/main.js`. La importacion incluye cache-busting para no quedar pegada a una key vieja despues de rotarla. Si no generas ese archivo localmente o no lo generas en el artefacto de GitHub Pages, Binance seguira funcionando con endpoints publicos, pero CoinStats/Etherscan no tendran API key y la seccion wallet mostrara un aviso de configuracion.
 
 Importante: aunque `.env` y `config.local.js` esten ignorados por git, cualquier key usada desde navegador sigue siendo visible para quien abra la app. Para produccion real, mueve las llamadas con keys a un proxy o funcion serverless.
 
