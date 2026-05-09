@@ -210,6 +210,7 @@ Datasets generados:
 - fetch de balances por red,
 - render del dashboard de assets,
 - disparo de carga de transacciones.
+- concurrencia limitada para balances multired, sin pausa fija entre redes.
 
 `SUPPORTED_CHAINS` esta en `js/config.js`.
 
@@ -237,6 +238,9 @@ Base:
 - Primero intenta leer transacciones.
 - Solo dispara `PATCH` de sincronizacion si CoinStats responde `409`.
 - Hace retry corto despues del sync.
+- Renderiza la primera pagina apenas recibe las transacciones.
+- Hidrata precio actual, precio historico y P&L en segundo plano con concurrencia limitada.
+- No imprime payloads completos ni URLs con `apikey` en consola.
 
 ### Precios y P&L
 
@@ -246,7 +250,7 @@ Base:
 - chart historico por coin id,
 - precio historico mas cercano a la fecha de la transaccion.
 
-`transactions.js` usa concurrencia limitada para precargar precios por pagina y evitar demoras innecesarias por llamadas secuenciales.
+`transactions.js` usa concurrencia limitada para resolver precios por pagina sin bloquear el primer render. Cada fila aparece con placeholders y se actualiza cuando llegan precio actual, precio historico y P&L.
 
 ## Configuracion
 
@@ -281,6 +285,18 @@ node scripts/generate-config.mjs
 `index.html` carga `js/config.local.js` antes de `js/main.js`. Si no generas ese archivo, Binance seguira funcionando con endpoints publicos, pero CoinStats/Etherscan no tendran API key.
 
 Importante: aunque `.env` y `config.local.js` esten ignorados por git, cualquier key usada desde navegador sigue siendo visible para quien abra la app. Para produccion real, mueve las llamadas con keys a un proxy o funcion serverless.
+
+### Seguridad de navegador
+
+`index.html` incluye una politica CSP basica:
+
+- limita scripts a la app y `cdn.jsdelivr.net`,
+- limita conexiones a Binance, CoinStats y Etherscan,
+- bloquea `object-src` y framing externo,
+- permite imagenes HTTPS y assets locales,
+- evita enviar `Referer` con `referrer=no-referrer`.
+
+Los datos externos que se renderizan en HTML deben pasar por `escapeHTML()` y las URLs de imagen por `safeImageUrl()`. Los errores visibles al usuario deben pasar por `safeErrorMessage()` para no volcar respuestas externas ni detalles sensibles en el DOM.
 
 ## Ejecucion local
 
@@ -345,7 +361,9 @@ Verificacion visual recomendada:
 - Mantener helpers tecnicos de grafica en `chartAdvanced.js`.
 - Mantener plugins/render de Chart.js en `pairs.js`.
 - Evitar reescribir DOM con strings enormes si se puede usar fragmentos, salvo en tablas ya existentes.
-- Evitar delays artificiales en transacciones. Preferir cache, deduplicacion y concurrencia limitada.
+- Evitar delays artificiales en balances y transacciones. Preferir cache, deduplicacion y concurrencia limitada.
+- No loguear URLs con `apikey`, headers, direcciones completas con payloads externos ni respuestas completas de APIs.
+- Si se agrega contenido dinamico con `innerHTML`, escapar textos con `escapeHTML()` y validar URLs con `safeImageUrl()`.
 - No dejar codigo comentado muerto ni secciones "eliminadas".
 - Si se agrega un indicador:
   - calcularlo en `chartAdvanced.js`,
@@ -357,6 +375,7 @@ Verificacion visual recomendada:
 ## Problemas conocidos
 
 - Las API keys ya no estan en archivos versionables, pero si se usan en navegador siguen siendo visibles en runtime.
+- La CSP ayuda a reducir XSS, pero no reemplaza escapar datos externos antes de renderizar.
 - CoinStats puede responder `429` o `409`. El codigo intenta reducir bursts con caches y concurrencia limitada.
 - Algunos iconos de tokens dependen de URLs externas y pueden fallar.
 - La app depende de CDN para Chart.js; sin internet no renderiza la grafica.

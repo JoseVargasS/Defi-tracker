@@ -110,7 +110,9 @@ Calculos en `js/chartAdvanced.js`:
 - usar `PRICE_CONCURRENCY`,
 - usar `mapWithConcurrency()`,
 - reutilizar caches de `prices.js`,
-- evitar delays artificiales.
+- evitar delays artificiales,
+- renderizar filas antes de esperar precios historicos,
+- hidratar USD/P&L en segundo plano.
 
 No reintroducir esperas largas como `await delay(4000)` para transacciones.
 
@@ -185,6 +187,15 @@ Si se prepara deploy real:
 - no llamar APIs con secretos desde navegador,
 - actualizar README.
 
+Reglas de seguridad en codigo:
+
+- no insertar datos externos en `innerHTML` sin `escapeHTML()`,
+- validar URLs de iconos con `safeImageUrl()`,
+- mostrar errores con `safeErrorMessage()`,
+- no loguear URLs con `apikey`, headers, payloads completos ni respuestas completas de APIs,
+- mantener la CSP de `index.html` sincronizada si se agregan nuevos dominios,
+- preferir `replaceChildren()`, `textContent` y nodos DOM para UI con datos no confiables.
+
 ## Verificacion antes de finalizar
 
 Minimo:
@@ -212,4 +223,5 @@ Si se toca transacciones:
 
 - probar wallet con actividad Ethereum,
 - probar wallet con Base si hay datos,
-- revisar que el primer render no quede bloqueado por precios historicos lentos.
+- revisar que el primer render no quede bloqueado por precios historicos lentos,
+- confirmar que los placeholders de USD/P&L se actualizan sin duplicar filas.
