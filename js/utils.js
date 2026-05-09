@@ -11,9 +11,54 @@ export function fmt(n, d = 2) {
   return Number(n).toLocaleString('en', { minimumFractionDigits: d, maximumFractionDigits: d });
 }
 
+export function escapeHTML(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[char]);
+}
+
+export function safeImageUrl(value, fallback = '') {
+  const url = String(value ?? '').trim();
+  if (!url) return fallback;
+  if (url.startsWith('./') || url.startsWith('/')) return url;
+
+  try {
+    const parsed = new URL(url);
+    return ['https:', 'http:'].includes(parsed.protocol) ? parsed.href : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export function safeErrorMessage(error, fallback = 'Ocurrio un error al cargar los datos.') {
+  const message = error?.message || String(error || '');
+  if (!message || message.length > 180) return fallback;
+  if (/[<>{}[\]();]/.test(message)) return fallback;
+  return message;
+}
+
 export function showMessage(el, msg, type = 'info') {
   if (!el) return;
-  el.innerHTML = `<div class="msg ${type}">${msg}</div>`;
+  const message = document.createElement('div');
+  message.className = `msg ${String(type).replace(/[^a-z-]/gi, '') || 'info'}`;
+  message.textContent = String(msg ?? '');
+  el.replaceChildren(message);
+}
+
+function redactUrl(value) {
+  try {
+    const parsed = new URL(value);
+    ['apikey', 'apiKey', 'key', 'token'].forEach(param => {
+      if (parsed.searchParams.has(param)) parsed.searchParams.set(param, '[redacted]');
+    });
+    return parsed.toString();
+  } catch {
+    return '[invalid-url]';
+  }
 }
 
 export async function makeRequest(url, options = {}, retryCount = 0) {
@@ -38,7 +83,7 @@ export async function makeRequest(url, options = {}, retryCount = 0) {
     // Only log errors that aren't 400 (Bad Request) for unknown tokens
     // And don't log 429 if we're still going to fail after retry
     if (!err.message || (!err.message.includes('HTTP 400') && !err.message.includes('HTTP 429'))) {
-      console.error('makeRequest error', url, err);
+      console.error('makeRequest error', redactUrl(url), safeErrorMessage(err));
     }
     throw err;
   }

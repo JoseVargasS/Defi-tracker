@@ -1,7 +1,7 @@
 // js/main.js
 //Importa todo y hace el DOMContentLoaded (reemplaza el app.js original).
 import { state } from './state.js';
-import { formatPrice } from './utils.js';
+import { formatPrice, safeErrorMessage } from './utils.js';
 import { fetchCoinsList, fetchPriceBatch, fetch24hStatsBatch } from './exchange.js';
 import { renderTrackedPairs, addTrackedPair, removeTrackedPair, renderCandlestick } from './pairs.js';
 import { renderSavedWallets, saveWallet, fetchAndRenderWallet, getSavedWallets } from './wallet.js';
@@ -69,7 +69,11 @@ document.addEventListener('DOMContentLoaded', async function () {
       try {
         await fetchAndRenderWallet(address);
       } catch (err) {
-        if (walletDataEl) walletDataEl.innerHTML = `<div>Error: ${err.message}</div>`;
+        if (walletDataEl) {
+          const error = document.createElement('div');
+          error.textContent = `Error: ${safeErrorMessage(err)}`;
+          walletDataEl.replaceChildren(error);
+        }
       }
     });
   }
@@ -124,16 +128,30 @@ document.addEventListener('DOMContentLoaded', async function () {
 
   // Pair suggestions
   if (pairSearch && pairSuggestions) {
+    const renderPairSuggestions = matches => {
+      pairSuggestions.replaceChildren();
+      if (matches.length === 0) {
+        const empty = document.createElement('div');
+        empty.textContent = 'No se encontraron monedas.';
+        pairSuggestions.appendChild(empty);
+        return;
+      }
+
+      const fragment = document.createDocumentFragment();
+      matches.forEach(coin => {
+        const item = document.createElement('div');
+        item.dataset.symbol = coin.symbol;
+        item.textContent = `${coin.base}/USDT`;
+        fragment.appendChild(item);
+      });
+      pairSuggestions.appendChild(fragment);
+    };
+
     pairSearch.addEventListener('input', () => {
       const q = pairSearch.value.trim().toUpperCase();
       if (!q) { pairSuggestions.classList.remove('active'); return; }
       const matches = (state.coinsList || []).filter(c => c.base.startsWith(q) || c.symbol.startsWith(q)).slice(0, 8);
-      if (matches.length === 0) {
-        pairSuggestions.innerHTML = '<div>No se encontraron monedas.</div>';
-        pairSuggestions.classList.add('active');
-        return;
-      }
-      pairSuggestions.innerHTML = matches.map(c => `<div data-symbol="${c.symbol}">${c.base}/USDT</div>`).join('');
+      renderPairSuggestions(matches);
       pairSuggestions.classList.add('active');
     });
     pairSuggestions.addEventListener('click', (e) => {
@@ -173,11 +191,10 @@ document.addEventListener('DOMContentLoaded', async function () {
         if (stat && stat.priceChangePercent !== undefined) {
           const pct = parseFloat(stat.priceChangePercent);
           const changeClass = pct > 0 ? 'positive' : (pct < 0 ? 'negative' : '');
-          const changeIcon = pct > 0 ? '<span class="arrow">▲</span>' : (pct < 0 ? '<span class="arrow">▼</span>' : '');
           const changeSpan = document.querySelector(`.pair-change[data-symbol="${symbol}"]`);
           if (changeSpan) {
             changeSpan.className = `pair-change ${changeClass}`;
-            changeSpan.innerHTML = `${changeIcon}${pct.toFixed(2)}%`;
+            changeSpan.textContent = `${pct > 0 ? '+' : ''}${pct.toFixed(2)}%`;
           }
         }
       }

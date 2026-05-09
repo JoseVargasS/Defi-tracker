@@ -92,6 +92,16 @@
   word-break: break-all;
 }
 
+.tx-detail.muted,
+.tx-message-cell {
+  color: #888;
+}
+
+.tx-message-cell {
+  padding: 18px !important;
+  text-align: center !important;
+}
+
 .tx-table-styled {
   display: table;
   width: 100%;
@@ -272,6 +282,21 @@
   font-weight: 700;
   color: #fff;
   text-align: right;
+}
+
+.tx-usd-current {
+  font-size: 1em;
+}
+
+.tx-pl-line {
+  font-size: 0.95em;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.tx-pl-pct {
+  font-size: 0.85em;
+  line-height: 1.1;
 }
 
 .tx-pl {

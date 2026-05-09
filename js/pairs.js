@@ -1,7 +1,7 @@
 // js/pairs.js
 // UI de mercado, watchlist y renderer flexible de velas.
 import { state, names } from './state.js';
-import { formatPrice } from './utils.js';
+import { escapeHTML, formatPrice, safeImageUrl } from './utils.js';
 import { fetchPrice, fetch24hStats, fetchKlines } from './exchange.js';
 import {
   CHART_THEME,
@@ -507,6 +507,10 @@ export const indicatorLegendPlugin = {
 
 export function createPairHtml(symbol, price, stats) {
   const base = symbol.replace('USDT', '');
+  const safeBase = escapeHTML(base);
+  const safeSymbol = escapeHTML(symbol);
+  const safeCoinName = escapeHTML(getCoinName(symbol));
+  const iconUrl = safeImageUrl(`https://assets.coincap.io/assets/icons/${base.toLowerCase()}@2x.png`);
   const pct = Number.parseFloat(stats?.priceChangePercent ?? 0);
   const changeClass = pct > 0 ? 'positive' : pct < 0 ? 'negative' : '';
   const item = document.createElement('div');
@@ -515,18 +519,21 @@ export function createPairHtml(symbol, price, stats) {
   item.dataset.symbol = symbol;
   item.innerHTML = `
     <div class="coin-icon">
-      <img src="https://assets.coincap.io/assets/icons/${base.toLowerCase()}@2x.png" alt="" onerror="this.onerror=null;this.src='https://cdn-icons-png.flaticon.com/512/1213/1213387.png';" />
+      <img src="${escapeHTML(iconUrl)}" alt="" />
     </div>
     <div class="coin-info">
-      <span class="coin-symbol">${base}<span class="coin-symbol-suffix">/USDT</span></span>
-      <span class="coin-name">${getCoinName(symbol)}</span>
+      <span class="coin-symbol">${safeBase}<span class="coin-symbol-suffix">/USDT</span></span>
+      <span class="coin-name">${safeCoinName}</span>
     </div>
     <div class="pair-price-group">
-      <span class="pair-price" data-symbol="${symbol}">${formatPrice(price)}</span>
-      <span class="pair-change ${changeClass}" data-symbol="${symbol}">${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%</span>
+      <span class="pair-price" data-symbol="${safeSymbol}">${formatPrice(price)}</span>
+      <span class="pair-change ${changeClass}" data-symbol="${safeSymbol}">${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%</span>
     </div>
-    <button type="button" class="delete-btn" aria-label="Eliminar ${base}">x</button>
+    <button type="button" class="delete-btn" aria-label="Eliminar ${safeBase}">x</button>
   `;
+  item.querySelector('img')?.addEventListener('error', event => {
+    event.currentTarget.src = 'https://cdn-icons-png.flaticon.com/512/1213/1213387.png';
+  });
 
   item.addEventListener('click', () => showPairDetails(symbol));
   item.querySelector('.delete-btn')?.addEventListener('click', event => {
@@ -771,6 +778,7 @@ export function updatePairUI(symbol, price, stats = {}) {
   if (!pairTitle || !pairPrice) return;
 
   const base = symbol.replace('USDT', '');
+  const safeBase = escapeHTML(base);
   const change = Number.parseFloat(stats.priceChange ?? 0);
   const changePct = Number.parseFloat(stats.priceChangePercent ?? 0);
   const changeClass = change > 0 ? 'positive' : change < 0 ? 'negative' : '';
@@ -797,7 +805,7 @@ export function updatePairUI(symbol, price, stats = {}) {
     <div><span class="label">24h cambio</span><span class="pair-change ${changeClass}">${change >= 0 ? '+' : ''}${change.toFixed(4)} (${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%)</span></div>
     <div><span class="label">Max</span><span>${formatPrice(high)}</span></div>
     <div><span class="label">Min</span><span>${formatPrice(low)}</span></div>
-    <div><span class="label">Vol ${base}</span><span>${compactNumber(volBase)}</span></div>
+    <div><span class="label">Vol ${safeBase}</span><span>${compactNumber(volBase)}</span></div>
     <div><span class="label">Vol USDT</span><span>${compactNumber(volUSDT)}</span></div>
   `;
 }
