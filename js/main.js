@@ -1,6 +1,6 @@
 // js/main.js
 //Importa todo y hace el DOMContentLoaded (reemplaza el app.js original).
-import { DEFAULT_TRACKED_PAIRS, state } from './state.js';
+import { APP_STORAGE_VERSION, DEFAULT_TRACKED_PAIRS, state } from './state.js';
 import { formatPrice, safeErrorMessage } from './utils.js';
 import { fetchCoinsList, fetchPriceBatch, fetch24hStatsBatch } from './exchange.js';
 import { renderTrackedPairs, addTrackedPair, renderCandlestick } from './pairs.js';
@@ -10,9 +10,30 @@ import { CHART_THEME } from './chartAdvanced.js';
 
 let appInitialized = false;
 
+function migrateLocalStorage() {
+  const versionKey = 'defiTrackerStorageVersion';
+  if (localStorage.getItem(versionKey) === APP_STORAGE_VERSION) return;
+
+  localStorage.removeItem('trackedPairs');
+  localStorage.removeItem('coinsListCache');
+
+  try {
+    const wallets = JSON.parse(localStorage.getItem('savedWallets') || '[]')
+      .filter(wallet => typeof wallet === 'string' && /^0x[a-fA-F0-9]{40}$/.test(wallet));
+    if (wallets.length) localStorage.setItem('savedWallets', JSON.stringify(wallets));
+    else localStorage.removeItem('savedWallets');
+  } catch {
+    localStorage.removeItem('savedWallets');
+  }
+
+  localStorage.setItem(versionKey, APP_STORAGE_VERSION);
+}
+
 async function initApp() {
   if (appInitialized) return;
   appInitialized = true;
+
+  migrateLocalStorage();
 
   // Suppress "User rejected the request" errors from external wallet extensions
   window.addEventListener('unhandledrejection', function (event) {

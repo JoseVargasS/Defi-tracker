@@ -123,6 +123,7 @@ La aplicacion arranca desde `index.html`, que carga librerias CDN y luego `js/bo
 
 - `tracked`: pares seguidos.
 - `DEFAULT_TRACKED_PAIRS`: pares iniciales usados cuando no hay watchlist guardada.
+- `APP_STORAGE_VERSION`: version de `localStorage`; si cambia, limpia caches viejas y sanea wallets guardadas.
 - `chartInstance`: instancia Chart.js activa.
 - `currentPair`: par abierto en detalle.
 - `currentInterval`: intervalo actual.

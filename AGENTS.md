@@ -148,6 +148,7 @@ Campos importantes:
 
 - `tracked`
 - `DEFAULT_TRACKED_PAIRS`
+- `APP_STORAGE_VERSION`
 - `chartInstance`
 - `currentPair`
 - `currentInterval`
