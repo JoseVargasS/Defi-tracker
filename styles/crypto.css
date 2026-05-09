@@ -1,370 +1,17 @@
-#tracked-pairs {
-  margin-top: 12px;
-  background: rgba(22, 24, 32, 0.55);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border-radius: 16px;
-  padding: 16px;
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.tracked-pair {
-  display: grid;
-  grid-template-columns: 1.5fr 1.2fr 1.2fr auto;
-  align-items: center;
-  background: transparent;
-  border-radius: 0;
-  margin: 0 0 0 0;
-  padding: 8px 16px;
-  min-height: 48px;
-  border-bottom: 1.5px solid #23262f;
-  gap: 0 12px;
-  transition: background 0.2s;
-  cursor: pointer;
-}
-
-.tracked-pair:last-child {
-  border-bottom: none;
-}
-
-.tracked-pair:hover {
-  background: #181a20;
-}
-
-.tracked-pair .coin-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: linear-gradient(145deg, #181a20 0%, #1e2129 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2.1rem;
-  margin-right: 0;
-  border: 2px solid #353945;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.tracked-pair .coin-icon img {
-  width: 80%;
-  height: 80%;
-  object-fit: contain;
-  border-radius: 50%;
-}
-
-.coin-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  min-width: 0;
-}
-
-.coin-symbol {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: inline-block;
-  vertical-align: middle;
-  font-size: 0.92rem !important;
-}
-
-.tracked-pair .coin-name {
-  font-size: 1.13rem;
-  font-weight: 700;
-  color: #fff;
-  margin-bottom: 0;
-}
-
-.tracked-pair .pair-price {
-  font-size: 1.18rem;
-  font-weight: 700;
-  color: #fff;
-  letter-spacing: 0.5px;
-  text-align: right;
-}
-
-.tracked-pair .pair-change {
-  font-size: 1.02rem;
-  font-weight: 700;
-  margin-left: 0;
-  min-width: 80px;
-  max-width: none;
-  display: inline-block;
-  text-align: center;
-  border-radius: 10px;
-  padding: 8px 14px;
-  background: #23262f;
-  box-sizing: border-box;
-  vertical-align: middle;
-  letter-spacing: 0.5px;
-  white-space: nowrap;
-  transition: all 0.2s;
-}
-
-.tracked-pair .pair-change.positive {
-  color: #1ecb81;
-  background: rgba(30, 203, 129, 0.15);
-  fill: #1ecb81;
-}
-
-.tracked-pair .pair-change.negative {
-  color: #e74c4c;
-  background: rgba(231, 76, 76, 0.15);
-  fill: #e74c4c;
-}
-
-.tracked-pair .pair-change:hover {
-  transform: scale(1.05);
-}
-
-.tracked-pair button {
-  background: none;
-  border: none;
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  font-size: 1.2rem;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-}
-
-.tracked-pair button:hover {
-  background: #e74c4c;
-  color: #fff;
-  transform: scale(1.1);
-}
-
-#pair-details {
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border-radius: 4px;
-  padding: 24px;
-  margin-top: 0;
-  position: relative;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-}
-
-#pair-details.hidden {
-  display: none;
-}
-
-#close-details {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  background: linear-gradient(145deg, #353945 0%, #2d313a 100%);
-  color: #fff;
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  font-size: 1.2rem;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-#close-details:hover {
-  background: #e74c4c;
-  transform: rotate(90deg);
-}
-
-#pair-title {
-  margin: 0 0 12px 0;
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: #fff;
-}
-
-#pair-price {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #45b26b;
-  margin-bottom: 16px;
-  text-shadow: 0 2px 10px rgba(69, 178, 107, 0.3);
-}
-
-.interval-selector {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 16px;
-  background: #181a20;
-  border-radius: 10px;
-  padding: 4px;
-  border: 1px solid #2d313a;
-  flex-wrap: wrap;
-}
-
-.interval-selector button {
-  background: transparent;
-  color: #888;
-  border-radius: 7px;
-  padding: 6px 12px;
-  font-size: 0.88rem;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-  transition: all 0.15s;
-  letter-spacing: 0.3px;
-}
-
-.interval-selector button:hover {
-  background: #23262f;
-  color: #ddd;
-}
-
-.interval-selector button.active {
-  background: #2d313a;
-  color: #fff;
-  font-weight: 700;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
-}
-
-#candlestick-chart {
-  width: 100% !important;
-  max-width: none;
-  height: 500px !important;
-  max-height: 700px;
-  display: block;
-  margin: 0 auto;
-  background: linear-gradient(180deg, #16181d 0%, #1a1d26 100%);
-  border-radius: 14px;
-  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
-}
-
-#tracked-pairs {
-  margin: 0 0 0 0;
-}
-
-.arrow {
-  vertical-align: middle;
-}
-
-.pair-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px 36px;
-  margin:  0 22px 0;
-  background: transparent;
-  border-radius: 0;
-  padding: 16px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.pair-stats .label {
-  color: #aaa;
-  font-size: 0.98rem;
-  margin-right: 4px;
-}
-
-.pair-stats .pair-change {
-  font-size: 1.08rem;
-  font-weight: 600;
-  margin-left: 0;
-  min-width: 70px;
-  display: inline-block;
-  text-align: right;
-}
-
-.pair-stats .pair-change.positive {
-  color: #00b07c;
-}
-
-.pair-stats .pair-change.negative {
-  color: #f23645;
-}
-
-.delete-btn {
-  background: linear-gradient(135deg, #353945 0%, #e74c4c 100%);
-  color: #fff;
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  font-size: 1.2rem;
-  font-weight: 700;
-  border: none;
-  transition: all 0.2s;
-}
-
-.delete-btn:hover {
-  background: linear-gradient(135deg, #e74c4c 0%, #c0392b 100%);
-  color: #fff;
-  transform: scale(1.1);
-}
-
-.delete-btn svg {
-  display: block;
-  pointer-events: none;
-}
-
-.pair-source {
-  font-size: 0.78em;
-  color: #888;
-  margin-left: 0;
-  margin-top: 2px;
-  font-style: italic;
-  opacity: 0.7;
-  align-self: flex-start;
-}
-
-.pair-source-link {
-  font-size: 0.78em;
-  color: #888;
-  margin-left: 6px;
-  font-style: italic;
-  opacity: 0.7;
-  text-decoration: none;
-  transition: color 0.15s;
-  vertical-align: middle;
-  white-space: nowrap;
-}
-
-.pair-source-link:hover {
-  color: #45b26b;
-  opacity: 1;
-}
-
-/* Layout Grid for Crypto Section */
 .crypto-section {
   grid-area: crypto;
-  width: 100%;
   display: grid;
-  grid-template-columns: 1fr 300px; /* Reduced from 340px */
-  grid-template-rows: auto 1fr;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-rows: auto minmax(620px, 1fr);
   grid-template-areas:
     "chart search"
     "chart list";
-  gap: 20px;
   align-items: start;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
 }
 
-@media (max-width: 1200px) {
-  .crypto-section {
-    grid-template-columns: 1fr 260px;
-    gap: 16px;
-  }
-}
-
-/* Header/Search Area */
 .crypto-section > h1 {
   display: none;
 }
@@ -373,221 +20,406 @@
   grid-area: search;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
+  margin: 0;
+  min-width: 0;
 }
 
 #pair-search {
-  padding: 14px 20px;
-  border-radius: 12px;
-  border: 1.5px solid #353945;
-  background: linear-gradient(145deg, #23262f 0%, #1e2129 100%);
-  color: #fff;
-  font-size: 1rem;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid #252a31;
+  background: #0b0d10;
+  color: #f5f7fa;
+  font-size: 0.92rem;
+  font-weight: 500;
+  outline: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
 }
 
 #pair-search:focus {
-  border-color: #45b26b;
-  box-shadow:
-    0 0 0 3px rgba(69, 178, 107, 0.2),
-    inset 0 2px 4px rgba(0, 0, 0, 0.2);
+  border-color: rgba(0, 192, 135, 0.72);
+  box-shadow: 0 0 0 3px rgba(0, 192, 135, 0.11);
 }
 
-/* Watchlist (Right Column) */
+#pair-suggestions {
+  position: absolute;
+  top: 45px;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: none;
+  overflow: hidden auto;
+  max-height: 260px;
+  background: #0b0d10;
+  border: 1px solid #252a31;
+  border-radius: 8px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.42);
+}
+
+#pair-suggestions.active {
+  display: block;
+}
+
+#pair-suggestions div {
+  padding: 11px 13px;
+  color: #d8dde3;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.055);
+  cursor: pointer;
+}
+
+#pair-suggestions div:last-child {
+  border-bottom: 0;
+}
+
+#pair-suggestions div:hover {
+  background: rgba(0, 192, 135, 0.08);
+  color: #fff;
+}
+
 #tracked-pairs {
   grid-area: list;
-  margin-top: 0;
-  background: rgba(22, 24, 32, 0.55);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border-radius: 16px;
-  padding: 0;
-  overflow: hidden;
-  max-height: 800px;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  max-height: 760px;
+  min-height: 240px;
+  margin: 0;
+  overflow: hidden auto;
+  background: #0b0d10;
+  border: 1px solid #252a31;
+  border-radius: 8px;
   scrollbar-width: thin;
-  scrollbar-color: #353945 transparent;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  scrollbar-color: #313841 transparent;
 }
 
 #tracked-pairs::-webkit-scrollbar {
   width: 6px;
 }
+
 #tracked-pairs::-webkit-scrollbar-thumb {
-  background: #353945;
-  border-radius: 3px;
+  background: #313841;
+  border-radius: 999px;
 }
 
-/* Adjust Pair Items for Narrower Column */
 .tracked-pair {
   display: grid;
-  grid-template-columns: 44px 1fr auto auto;
+  grid-template-columns: 34px minmax(0, 1fr) auto 28px;
   align-items: center;
-  padding: 10px 14px;
   gap: 10px;
-  min-height: 60px;
-  border-bottom: 1px solid #2d313a;
+  min-height: 58px;
+  padding: 9px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.055);
   cursor: pointer;
-  transition: all 0.2s;
-}
-
-.tracked-pair:hover {
-  background: linear-gradient(
-    90deg,
-    rgba(69, 178, 107, 0.08) 0%,
-    transparent 100%
-  );
+  transition: background 0.16s ease, border-color 0.16s ease;
 }
 
 .tracked-pair:last-child {
-  border-bottom: none;
+  border-bottom: 0;
 }
 
-.tracked-pair .coin-icon {
-  grid-column: 1;
-  grid-row: 1;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(145deg, #181a20 0%, #1e2129 100%);
+.tracked-pair:hover {
+  background: #11151a;
+}
+
+.coin-icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
   border-radius: 50%;
-  padding: 4px;
-  box-sizing: border-box;
-  border: 2px solid #353945;
+  background: #151a20;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  overflow: hidden;
 }
 
-.tracked-pair .coin-icon img {
-  width: 100%;
-  height: 100%;
+.coin-icon img {
+  width: 86%;
+  height: 86%;
   object-fit: contain;
   border-radius: 50%;
 }
 
 .coin-info {
-  grid-column: 2;
-  grid-row: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   min-width: 0;
-  margin-left: 4px;
 }
 
 .coin-symbol {
-  font-size: 1.05rem !important;
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  color: #f5f7fa;
+  font-size: 0.96rem;
   font-weight: 700;
-  color: #fff;
-}
-
-.coin-symbol-suffix {
-  font-size: 0.85em;
-  color: #777;
-  font-weight: 600;
-  margin-left: 4px;
-}
-
-.tracked-pair .coin-name {
-  font-size: 0.85rem;
-  color: #aaa;
-  font-weight: 500;
-  margin-top: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* Price & Change Stacked on Right */
-.tracked-pair .pair-price-group {
-  grid-column: 3;
-  grid-row: 1;
+.coin-symbol-suffix,
+.coin-name {
+  color: #747c86;
+  font-weight: 600;
+}
+
+.coin-symbol-suffix {
+  font-size: 0.76rem;
+}
+
+.coin-name {
+  margin-top: 2px;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pair-price-group {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 1px;
+  gap: 2px;
+  min-width: 82px;
 }
 
-.tracked-pair .pair-price {
-  font-size: 1.05rem;
+.pair-price {
+  color: #f5f7fa;
+  font-size: 0.94rem;
   font-weight: 700;
-  color: #fff;
+  font-variant-numeric: tabular-nums;
 }
 
-.tracked-pair .pair-change {
-  font-size: 0.88rem;
-  padding: 4px 8px;
-  min-width: 65px;
-  border-radius: 8px;
-  text-align: right;
-  font-weight: 600;
+.pair-change {
+  color: #9aa3ad;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.pair-change.positive,
+#pair-price .positive {
+  color: #00c087;
+}
+
+.pair-change.negative,
+#pair-price .negative {
+  color: #f23645;
 }
 
 .delete-btn {
-  grid-column: 4;
-  grid-row: 1;
-  display: flex !important;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
   background: transparent;
-  color: #666;
-  border: none;
-  border-radius: 8px;
-  width: 32px;
-  height: 32px;
-  font-size: 1.1rem;
-  font-weight: 600;
+  color: #5d6670;
+  font-size: 1rem;
+  font-weight: 700;
   cursor: pointer;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-  margin-left: 10px;
 }
 
 .delete-btn:hover {
-  background: linear-gradient(135deg, #e74c4c 0%, #c0392b 100%);
-  color: #fff;
+  background: rgba(242, 54, 69, 0.13);
+  color: #f23645;
 }
 
-/* We can add a delete mode or small x later if user asks. For now cleaner list. */
-
-/* Chart Area (Left Column) */
 #pair-details {
   grid-area: chart;
-  margin-top: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border-radius: 16px;
-  padding: 24px;
-  height: 100%;
-  min-height: 700px;
-  display: flex !important;
+  display: flex;
   flex-direction: column;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  min-width: 0;
+  min-height: 740px;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: #060708;
+  border: 1px solid #252a31;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+#pair-details.hidden {
+  display: none;
+}
+
+.chart-topline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px 10px;
+  background: #080a0d;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.chart-market-summary {
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-areas:
+    "kicker kicker"
+    "title price"
+    "stats stats";
+  align-items: baseline;
+  gap: 4px 14px;
+  min-width: 0;
+}
+
+.chart-kicker {
+  grid-area: kicker;
+  color: #747c86;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+#pair-title {
+  grid-area: title;
+  margin: 0;
+  color: #f5f7fa;
+  font-size: 1.28rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+#pair-price {
+  grid-area: price;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  color: #f5f7fa;
+  font-size: 1.2rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+#pair-price strong {
+  font-size: 0.86rem;
+}
+
+#close-details {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  background: #11151a;
+  color: #9aa3ad;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+#close-details:hover {
+  border-color: rgba(242, 54, 69, 0.45);
+  color: #f23645;
+}
+
+.pair-stats {
+  grid-area: stats;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 8px;
+  color: #c7ccd2;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.pair-stats > div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pair-stats .label {
+  color: #69707a;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.chart-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  background: #080a0d;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.interval-selector,
+.indicator-selector {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.interval-selector {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.interval-selector::-webkit-scrollbar {
+  display: none;
+}
+
+.interval-selector button,
+.chart-indicator-toggle {
+  height: 28px;
+  flex: 0 0 auto;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #747c86;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.interval-selector button:hover,
+.chart-indicator-toggle:hover {
+  background: #11151a;
+  color: #f5f7fa;
+}
+
+.interval-selector button.active,
+.chart-indicator-toggle.active {
+  background: #17211f;
+  color: #00c087;
 }
 
 #chart-wrapper {
-  flex: 1;
-  min-height: 400px;
   position: relative;
+  flex: 1 1 auto;
+  min-height: 520px;
   width: 100%;
-  margin-bottom: 8px;
+  background: #060708;
 }
 
-/* Make chart take remaining height */
 #candlestick-chart {
   position: absolute;
-  top: 0;
-  left: 0;
+  inset: 0;
   width: 100% !important;
   height: 100% !important;
-  background: transparent;
-  border-radius: 0;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: block;
+  background: #060708;
   touch-action: none;
 }
 
-/* Indicator Panel Styles - Removed */
+.arrow {
+  vertical-align: middle;
+}

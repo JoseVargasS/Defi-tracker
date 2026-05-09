@@ -4,7 +4,17 @@ export const state = {
   chartInstance: null,
   currentPair: null,
   currentInterval: '1d',
-  chartZoom: 60,
+  chartZoom: 120,
+  chartView: {
+    minVisible: 24,
+    zoomStep: 16,
+    panSensitivity: 6
+  },
+  chartIndicators: {
+    bollinger: true,
+    volume: true,
+    stochRsi: true
+  },
   lastPrices: {},
   coinIcons: {},
   pricesCache: {},

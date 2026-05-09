@@ -2,10 +2,11 @@
 //Importa todo y hace el DOMContentLoaded (reemplaza el app.js original).
 import { state } from './state.js';
 import { formatPrice } from './utils.js';
-import { fetchCoinsList, fetchPrice, fetch24hStats, fetchPriceBatch, fetch24hStatsBatch } from './exchange.js';
-import { renderTrackedPairs, addTrackedPair, removeTrackedPair, createPairHtml, renderCandlestick } from './pairs.js';
+import { fetchCoinsList, fetchPriceBatch, fetch24hStatsBatch } from './exchange.js';
+import { renderTrackedPairs, addTrackedPair, removeTrackedPair, renderCandlestick } from './pairs.js';
 import { renderSavedWallets, saveWallet, fetchAndRenderWallet, getSavedWallets } from './wallet.js';
 import { fetchAndShowTransactions, loadTx } from './transactions.js';
+import { CHART_THEME } from './chartAdvanced.js';
 
 document.addEventListener('DOMContentLoaded', async function () {
 
@@ -24,9 +25,9 @@ document.addEventListener('DOMContentLoaded', async function () {
 
   // Chart.js defaults (si Chart está cargado)
   if (window.Chart && window.Chart.defaults && window.Chart.defaults.elements && window.Chart.defaults.elements.candlestick) {
-    const upColor = '#0ecb81';
-    const downColor = '#f6465d';
-    const neutralColor = '#999999';
+    const upColor = CHART_THEME.up;
+    const downColor = CHART_THEME.down;
+    const neutralColor = CHART_THEME.neutral;
 
     // Forzar defaults globales para evitar herencias de estilos viejos
     window.Chart.defaults.elements.candlestick.color = { up: upColor, down: downColor, unchanged: neutralColor };
@@ -43,6 +44,11 @@ document.addEventListener('DOMContentLoaded', async function () {
 
   if (closeDetails) {
     closeDetails.addEventListener('click', () => {
+      if (state.detailInterval) {
+        clearInterval(state.detailInterval);
+        state.detailInterval = null;
+      }
+      state.currentPair = null;
       if (pairDetails) pairDetails.classList.add('hidden');
       try {
         const existing = Chart.getChart(document.getElementById('candlestick-chart'));
@@ -102,6 +108,16 @@ document.addEventListener('DOMContentLoaded', async function () {
       }
     });
   }
+
+  document.querySelectorAll('.chart-indicator-toggle').forEach(button => {
+    const key = button.dataset.indicator;
+    button.classList.toggle('active', state.chartIndicators[key] !== false);
+    button.addEventListener('click', () => {
+      state.chartIndicators[key] = !state.chartIndicators[key];
+      button.classList.toggle('active', state.chartIndicators[key]);
+      if (state.currentPair) renderCandlestick(state.currentPair, state.currentInterval);
+    });
+  });
 
   // Fetch coins list
   fetchCoinsList();

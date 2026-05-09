@@ -14,7 +14,7 @@
   flex: 1;
   min-width: 320px;
   max-width: 600px;
-  border-radius: 16px;
+  border-radius: 8px;
 }
 
 .tx-section header {
@@ -48,7 +48,7 @@
   background: rgba(22, 24, 32, 0.35);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-radius: 16px;
+  border-radius: 8px;
   max-height: 600px;
   overflow-y: auto;
   overflow-x: auto;

@@ -100,7 +100,7 @@ button,
   background: #1a1d26;
   color: #d0d0d0;
   font-size: 0.88rem;
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   outline: none;
   transition: border-color 0.18s;
 }
@@ -110,7 +110,7 @@ button,
 }
 
 .wallet-saved-select {
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 0.88rem;
   border-radius: 10px;
   border: 1px solid #3b3f4a;

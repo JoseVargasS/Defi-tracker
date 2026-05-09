@@ -66,16 +66,33 @@ function aggregateKlines(rawKlines, groupSize) {
   for (let i = 0; i < rawKlines.length; i += groupSize) {
     const chunk = rawKlines.slice(i, i + groupSize);
     const openTime = chunk[0][0];
+    const closeTime = chunk[chunk.length - 1][6];
     const open = parseFloat(chunk[0][1]);
     const close = parseFloat(chunk[chunk.length - 1][4]);
-    let high = -Infinity, low = Infinity;
+    let high = -Infinity;
+    let low = Infinity;
+    let volume = 0;
+    let quoteVolume = 0;
+
     for (const candle of chunk) {
       const h = parseFloat(candle[2]);
       const l = parseFloat(candle[3]);
       if (h > high) high = h;
       if (l < low) low = l;
+      volume += parseFloat(candle[5] ?? 0);
+      quoteVolume += parseFloat(candle[7] ?? 0);
     }
-    aggregated.push([openTime, open.toString(), high.toString(), low.toString(), close.toString()]);
+
+    aggregated.push([
+      openTime,
+      open.toString(),
+      high.toString(),
+      low.toString(),
+      close.toString(),
+      volume.toString(),
+      closeTime,
+      quoteVolume.toString()
+    ]);
   }
   return aggregated;
 }
