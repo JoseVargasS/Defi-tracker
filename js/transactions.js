@@ -13,6 +13,28 @@ const networks = {
 };
 
 let currentTxAddress = null;
+const TX_PAGE_SIZE = 10;
+const PRICE_CONCURRENCY = 4;
+
+async function mapWithConcurrency(items, limit, mapper) {
+  const results = new Array(items.length);
+  let cursor = 0;
+
+  async function worker() {
+    while (cursor < items.length) {
+      const index = cursor++;
+      results[index] = await mapper(items[index], index);
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
+}
+
+function normalizePriceSymbol(tx) {
+  const sym = tx.tokenSymbol || tx.symbol || 'ETH';
+  return sym === 'ETH' ? 'ETH' : sym;
+}
 
 /* ------------------ Helpers de cantidad/formatos ------------------ */
 function safeIsIntegerString(s) {
@@ -107,8 +129,9 @@ export async function loadTx(networkId = 'ethereum') {
   const net = networks[networkId];
   const tbody = document.getElementById(net.tbodyId);
   if (!tbody) return;
+  if (net.offset === 0) tbody.innerHTML = '';
 
-  const slice = net.txList.slice(net.offset, net.offset + 10);
+  const slice = net.txList.slice(net.offset, net.offset + TX_PAGE_SIZE);
   const grouped = {};
 
   for (const tx of slice) {
@@ -121,29 +144,20 @@ export async function loadTx(networkId = 'ethereum') {
     grouped[date].push(tx);
   }
 
-  const pricesData = [];
-  for (let i = 0; i < slice.length; i++) {
-    const tx = slice[i];
-    const sym = tx.tokenSymbol || tx.symbol || 'ETH';
+  const pricesData = await mapWithConcurrency(slice, PRICE_CONCURRENCY, async tx => {
+    const sym = normalizePriceSymbol(tx);
     const txDateObj = new Date(Number(tx.timeStamp) * 1000);
 
     try {
-      // Use sequential fetching with a small delay to avoid 429 errors
-      const current = await getTokenPriceUSD(sym === 'ETH' ? 'ETH' : sym);
-      const historical = await getHistoricalTokenPriceUSD(sym === 'ETH' ? 'ETH' : sym, txDateObj);
-      
-      pricesData.push({ status: 'fulfilled', value: { current, historical } });
+      const [current, historical] = await Promise.all([
+        getTokenPriceUSD(sym),
+        getHistoricalTokenPriceUSD(sym, txDateObj)
+      ]);
+      return { status: 'fulfilled', value: { current, historical } };
     } catch (e) {
-      pricesData.push({ status: 'rejected', reason: e });
+      return { status: 'rejected', reason: e };
     }
-    
-    // Small delay between transactions to avoid burst rate limits
-    if (i < slice.length - 1) {
-      await new Promise(r => setTimeout(r, 150));
-    }
-  }
-
-
+  });
 
   for (const date of Object.keys(grouped)) {
     const [day, month, year] = date.split('/');
@@ -228,7 +242,7 @@ export async function loadTx(networkId = 'ethereum') {
     }
   }
 
-  net.offset += 10;
+  net.offset += TX_PAGE_SIZE;
   const txTableEl = document.getElementById(net.tableId);
   if (txTableEl) txTableEl.style.display = 'table';
 
@@ -253,7 +267,7 @@ export async function fetchAndShowTransactions(address, networkId = 'ethereum') 
   const net = networks[networkId];
   net.offset = 0; net.txList = []; currentTxAddress = address;
   const tbody = document.getElementById(net.tbodyId);
-  if (tbody) tbody.innerHTML = '';
+  if (tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 18px; color: #888;">Cargando transacciones...</td></tr>';
   if (!address) return;
 
   try {
@@ -293,24 +307,24 @@ export async function fetchAndShowTransactions(address, networkId = 'ethereum') 
     } 
     else if (networkId === 'base-wallet') {
       console.log('Fetching Base transactions for:', address);
-      
-      // First, trigger sync to get latest transactions
-      const patchUrl = `${COINSTATS_API}/wallet/transactions?address=${address}&connectionId=base-wallet`;
-      console.log('Triggering Base transactions sync...');
-      const patchRes = await fetch(patchUrl, {
-          method: 'PATCH',
-          headers: { 'X-API-KEY': COINSTATS_API_KEY }
-      });
-      console.log('PATCH response:', patchRes.status);
-      
-      // Wait for sync to complete
-      await new Promise(r => setTimeout(r, 5000));
-      
-      // Now fetch the transactions
+
       const url = `${COINSTATS_API}/wallet/transactions?address=${address}&connectionId=base-wallet&limit=100`;
       let response = await fetch(url, {
           headers: { 'X-API-KEY': COINSTATS_API_KEY }
       });
+
+      if (response.status === 409) {
+        const patchUrl = `${COINSTATS_API}/wallet/transactions?address=${address}&connectionId=base-wallet`;
+        fetch(patchUrl, {
+          method: 'PATCH',
+          headers: { 'X-API-KEY': COINSTATS_API_KEY }
+        }).catch(error => console.warn('Base sync trigger failed:', error));
+
+        await new Promise(r => setTimeout(r, 1200));
+        response = await fetch(url, {
+          headers: { 'X-API-KEY': COINSTATS_API_KEY }
+        });
+      }
       
       console.log('Base transactions response status:', response.status);
       

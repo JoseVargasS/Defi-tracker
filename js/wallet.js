@@ -1,7 +1,6 @@
 // js/wallet.js
 //Funciones para saved wallets y render wallet.
 import { COINSTATS_API, COINSTATS_API_KEY, SUPPORTED_CHAINS } from './config.js';
-import { makeRequest } from './utils.js';
 import { fetchAndShowTransactions } from './transactions.js';
 
 export function getSavedWallets() { return JSON.parse(localStorage.getItem('savedWallets') || '[]'); }
@@ -28,6 +27,9 @@ export async function fetchAndRenderWallet(address) {
   const walletDataEl = document.getElementById('walletData');
   if (!walletDataEl) return;
   walletDataEl.innerHTML = '<div class="wallet-loading">Cargando balances de múltiples redes...</div>';
+
+  const transactionsPromise = fetchAndShowTransactions(address, 'all')
+    .catch(e => console.warn('Error loading transactions:', e));
 
   try {
     // Fetch balances from all supported chains SEQUENTIALLY with delays to avoid rate limits
@@ -158,11 +160,7 @@ export async function fetchAndRenderWallet(address) {
     html += `</div>`;
     walletDataEl.innerHTML = html;
 
-    // Llamar transacciones después de un delay
-    try {
-      await delay(4000); // Wait 4 seconds before fetching transactions
-      await fetchAndShowTransactions(address, 'all');
-    } catch (e) { console.warn('Error loading transactions:', e); }
+    await transactionsPromise;
   } catch (err) {
     console.error('fetchAndRenderWallet error', err);
     const walletDataEl = document.getElementById('walletData');

@@ -63,6 +63,70 @@ const buildTechnicalSeries = data => ({
 
 const horizontalLevel = (candles, value) => candles.map(item => ({ x: item.x, y: value }));
 
+const lastDefined = items => {
+  for (let i = items.length - 1; i >= 0; i--) {
+    if (items[i]?.y !== null && items[i]?.y !== undefined) return items[i];
+  }
+  return null;
+};
+
+const formatIndicatorValue = value => Number.isFinite(value) ? value.toFixed(2) : '-';
+const isScaleVisible = scale => Boolean(scale) && scale.options?.display !== false;
+
+function drawValueChip(ctx, chart, scale, value, color, y) {
+  if (!Number.isFinite(value) || !scale) return;
+
+  const label = value.toFixed(1);
+  const width = Math.max(42, ctx.measureText(label).width + 16);
+  const x = chart.chartArea.right + 4;
+
+  ctx.save();
+  ctx.fillStyle = '#121820';
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x, y, width, 22, 5);
+  else ctx.rect(x, y, width, 22);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#f5f7fa';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = '400 12px Inter, sans-serif';
+  ctx.fillText(label, x + width / 2, y + 11);
+  ctx.restore();
+}
+
+function getSeparatedChipPositions(scale, values) {
+  const chipHeight = 22;
+  const gap = 5;
+  const minY = scale.top + 4;
+  const maxY = scale.bottom - chipHeight;
+  const chips = values
+    .filter(item => Number.isFinite(item.value))
+    .map(item => ({
+      ...item,
+      y: Math.max(minY, Math.min(scale.getPixelForValue(item.value) - chipHeight / 2, maxY))
+    }))
+    .sort((a, b) => a.y - b.y);
+
+  for (let i = 1; i < chips.length; i++) {
+    chips[i].y = Math.max(chips[i].y, chips[i - 1].y + chipHeight + gap);
+  }
+
+  const overflow = chips.at(-1)?.y - maxY;
+  if (overflow > 0) {
+    for (let i = chips.length - 1; i >= 0; i--) chips[i].y -= overflow;
+  }
+
+  if (chips[0]?.y < minY) {
+    const underflow = minY - chips[0].y;
+    chips.forEach(chip => { chip.y += underflow; });
+  }
+
+  return chips;
+}
+
 const buildDatasets = (symbol, candles, series) => {
   const datasets = [
     {
@@ -269,10 +333,10 @@ export const crosshairPlugin = {
     const yValue = activeScale.getValueForPixel(chart.crosshair.y);
     const yLabel = formatScaleValue(activeScale.id, yValue);
     if (yLabel) {
-      ctx.font = '12px "IBM Plex Sans", sans-serif';
+      ctx.font = '12px Inter, sans-serif';
       const labelWidth = ctx.measureText(yLabel).width + 18;
       const labelHeight = 22;
-      const boxX = chart.chartArea.right + 8;
+      const boxX = Math.max(chart.chartArea.left, chart.chartArea.right - labelWidth);
       const boxY = Math.max(activeScale.top, Math.min(chart.crosshair.y - labelHeight / 2, activeScale.bottom - labelHeight));
 
       ctx.fillStyle = '#11151a';
@@ -346,10 +410,10 @@ export const currentPricePlugin = {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    ctx.font = 'bold 12px "IBM Plex Sans", sans-serif';
+    ctx.font = 'bold 12px Inter, sans-serif';
     const labelWidth = ctx.measureText(label).width + 18;
     const labelHeight = 22;
-    const boxX = chart.chartArea.right;
+    const boxX = chart.chartArea.right + 4;
     const boxY = Math.max(priceScale.top, Math.min(yPixel - labelHeight / 2, priceScale.bottom - labelHeight));
 
     ctx.fillStyle = color;
@@ -365,6 +429,78 @@ export const currentPricePlugin = {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(label, boxX + 7 + (labelWidth - 7) / 2, boxY + labelHeight / 2);
+    ctx.restore();
+  }
+};
+
+export const indicatorLegendPlugin = {
+  id: 'indicatorLegend',
+  afterDraw(chart) {
+    const fallbackIndex = chart.data.datasets[0]?.data?.length - 1 ?? 0;
+    const index = chart.crosshair?.snapIndex ?? fallbackIndex;
+    const ctx = chart.ctx;
+    const volumeScale = chart.scales.volume;
+    const stochScale = chart.scales.stochRsi;
+
+    ctx.save();
+    ctx.font = '700 11px Inter, sans-serif';
+    ctx.textBaseline = 'top';
+
+    if (isScaleVisible(volumeScale)) {
+      const volumeData = chart.data.datasets.find(ds => ds.label === 'Volume')?.data || [];
+      const volumePoint = volumeData[index] || lastDefined(volumeData);
+      const vol = volumePoint?.y ?? 0;
+      const quoteVol = volumePoint?.q ?? 0;
+      let x = chart.chartArea.left + 10;
+      const y = volumeScale.top + 7;
+
+      ctx.fillStyle = '#f5f7fa';
+      ctx.fillText('v VOLUME', x, y);
+      x += ctx.measureText('v VOLUME  ').width;
+      ctx.fillStyle = '#aeb4bd';
+      ctx.fillText('VOL', x, y);
+      x += ctx.measureText('VOL ').width;
+      ctx.fillStyle = CHART_THEME.accent;
+      ctx.fillText(compactNumber(vol), x, y);
+      x += ctx.measureText(`${compactNumber(vol)}  `).width;
+      ctx.fillStyle = '#aeb4bd';
+      ctx.fillText('VOL(USDT)', x, y);
+      x += ctx.measureText('VOL(USDT) ').width;
+      ctx.fillStyle = CHART_THEME.stochD;
+      ctx.fillText(compactNumber(quoteVol), x, y);
+    }
+
+    if (isScaleVisible(stochScale)) {
+      const kData = chart.data.datasets.find(ds => ds.label === 'Stoch RSI %K')?.data || [];
+      const dData = chart.data.datasets.find(ds => ds.label === 'Stoch RSI %D')?.data || [];
+      const kPoint = kData[index] || lastDefined(kData);
+      const dPoint = dData[index] || lastDefined(dData);
+      let x = chart.chartArea.left + 10;
+      const y = stochScale.top + 7;
+
+      ctx.fillStyle = '#f5f7fa';
+      ctx.fillText('v StochRSI(14,14,3,3)', x, y);
+      x += ctx.measureText('v StochRSI(14,14,3,3)  ').width;
+      ctx.fillStyle = '#aeb4bd';
+      ctx.fillText('STOCHRSI', x, y);
+      x += ctx.measureText('STOCHRSI ').width;
+      ctx.fillStyle = CHART_THEME.stochK;
+      ctx.fillText(formatIndicatorValue(kPoint?.y), x, y);
+      x += ctx.measureText(`${formatIndicatorValue(kPoint?.y)}  `).width;
+      ctx.fillStyle = '#aeb4bd';
+      ctx.fillText('MASTOCHRSI', x, y);
+      x += ctx.measureText('MASTOCHRSI ').width;
+      ctx.fillStyle = CHART_THEME.stochD;
+      ctx.fillText(formatIndicatorValue(dPoint?.y), x, y);
+
+      getSeparatedChipPositions(stochScale, [
+        { key: 'k', value: kPoint?.y, color: CHART_THEME.stochK },
+        { key: 'd', value: dPoint?.y, color: CHART_THEME.stochD }
+      ]).forEach(chip => {
+        drawValueChip(ctx, chart, stochScale, chip.value, chip.color, chip.y);
+      });
+    }
+
     ctx.restore();
   }
 };
@@ -559,14 +695,14 @@ export async function renderCandlestick(symbol, interval) {
         animation: false,
         parsing: false,
         interaction: { mode: 'nearest', intersect: false },
-        layout: { padding: { right: 96, bottom: 28, left: 6, top: 4 } },
+        layout: { padding: { right: 76, bottom: 28, left: 6, top: 56 } },
         plugins: {
           legend: { display: false },
           tooltip: { enabled: false }
         },
         scales: createScales(interval)
       },
-      plugins: [crosshairPlugin, createAdvancedTooltipPlugin(), currentPricePlugin]
+      plugins: [crosshairPlugin, createAdvancedTooltipPlugin(), currentPricePlugin, indicatorLegendPlugin]
     });
 
     Object.assign(state.chartInstance, {

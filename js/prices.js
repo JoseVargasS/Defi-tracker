@@ -165,6 +165,7 @@ export async function getHistoricalTokenPriceUSD(symbol, date) {
       state.pricesCache[cacheKey] = histPrice;
     }
 
+    return histPrice;
 
   } catch (err) {
     return null;

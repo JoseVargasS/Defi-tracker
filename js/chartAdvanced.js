@@ -80,6 +80,7 @@ export function calculateVolume(data) {
   return data.map(item => ({
     x: item.x,
     y: item.v || 0,
+    q: item.q || 0,
     color: item.c >= item.o ? CHART_THEME.up : CHART_THEME.down
   }));
 }
@@ -154,15 +155,10 @@ export function createAdvancedTooltipPlugin() {
 
       const ctx = chart.ctx;
       const hasVolume = Number.isFinite(candleData.v) && candleData.v > 0;
-      const tooltipWidth = 168;
-      const tooltipHeight = hasVolume ? 158 : 134;
-      let tooltipX = chart.crosshair.x + 15;
-      let tooltipY = chart.chartArea.top + 10;
-
-      if (tooltipX + tooltipWidth > chart.width) tooltipX = chart.crosshair.x - tooltipWidth - 15;
-      if (tooltipY + tooltipHeight > chart.chartArea.bottom) {
-        tooltipY = chart.chartArea.bottom - tooltipHeight - 10;
-      }
+      const tooltipHeight = 42;
+      const tooltipX = chart.chartArea.left + 8;
+      const tooltipY = Math.max(4, chart.chartArea.top - tooltipHeight - 8);
+      const tooltipWidth = Math.min(chart.chartArea.width - 16, hasVolume ? 620 : 540);
 
       const dateStr = new Date(candleData.x).toLocaleString('es-ES', {
         year: 'numeric',
@@ -177,49 +173,45 @@ export function createAdvancedTooltipPlugin() {
       const changePct = candleData.o ? (change / candleData.o) * 100 : 0;
 
       ctx.save();
-      ctx.fillStyle = 'rgba(8, 10, 12, 0.94)';
-      ctx.strokeStyle = CHART_THEME.border;
+      ctx.fillStyle = 'rgba(8, 10, 12, 0.78)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
       ctx.lineWidth = 1;
       ctx.beginPath();
-      if (ctx.roundRect) ctx.roundRect(tooltipX, tooltipY, tooltipWidth, tooltipHeight, 8);
+      if (ctx.roundRect) ctx.roundRect(tooltipX, tooltipY, tooltipWidth, tooltipHeight, 6);
       else ctx.rect(tooltipX, tooltipY, tooltipWidth, tooltipHeight);
       ctx.fill();
       ctx.stroke();
 
       ctx.fillStyle = CHART_THEME.text;
-      ctx.font = 'bold 12px "IBM Plex Sans", sans-serif';
+      ctx.font = '700 11px Inter, sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText(dateStr, tooltipX + 12, tooltipY + 22);
-
-      ctx.strokeStyle = CHART_THEME.border;
-      ctx.beginPath();
-      ctx.moveTo(tooltipX + 8, tooltipY + 32);
-      ctx.lineTo(tooltipX + tooltipWidth - 8, tooltipY + 32);
-      ctx.stroke();
+      ctx.fillText(dateStr, tooltipX + 10, tooltipY + 10);
 
       const rows = [
-        ['Open', candleData.o?.toFixed?.(4)],
-        ['High', candleData.h?.toFixed?.(4), CHART_THEME.up],
-        ['Low', candleData.l?.toFixed?.(4), CHART_THEME.down],
-        ['Close', candleData.c?.toFixed?.(4), priceColor],
+        ['O', candleData.o?.toFixed?.(4)],
+        ['H', candleData.h?.toFixed?.(4), CHART_THEME.up],
+        ['L', candleData.l?.toFixed?.(4), CHART_THEME.down],
+        ['C', candleData.c?.toFixed?.(4), priceColor],
         [
-          'Change',
+          'CHG',
           `${change >= 0 ? '+' : ''}${change.toFixed(4)} (${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%)`,
           priceColor
         ]
       ];
 
-      if (hasVolume) rows.push(['Volume', compactNumber(candleData.v)]);
+      if (hasVolume) rows.push(['VOL', compactNumber(candleData.v)]);
 
-      ctx.font = '11px "IBM Plex Sans", sans-serif';
-      rows.forEach(([label, value, color], index) => {
-        const y = tooltipY + 50 + index * 18;
-        ctx.textAlign = 'left';
+      ctx.font = '11px Inter, sans-serif';
+      let cursorX = tooltipX + 10;
+      const rowY = tooltipY + 27;
+      rows.forEach(([label, value, color]) => {
         ctx.fillStyle = CHART_THEME.muted;
-        ctx.fillText(label, tooltipX + 12, y);
-        ctx.textAlign = 'right';
+        ctx.textAlign = 'left';
+        ctx.fillText(label, cursorX, rowY);
+        cursorX += ctx.measureText(`${label} `).width;
         ctx.fillStyle = color || '#f3f5f7';
-        ctx.fillText(value || '-', tooltipX + tooltipWidth - 12, y);
+        ctx.fillText(value || '-', cursorX, rowY);
+        cursorX += ctx.measureText(`${value || '-'}   `).width;
       });
 
       ctx.restore();
