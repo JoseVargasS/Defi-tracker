@@ -1,7 +1,14 @@
 // js/transactions.js
 // Transaction fetch/render for Ethereum ERC-20/native ETH and Base via CoinStats.
 
-import { ETH_API, ETH_KEY, COINSTATS_API, COINSTATS_API_KEY } from './config.js';
+import {
+  ETH_API,
+  ETH_KEY,
+  COINSTATS_API,
+  COINSTATS_API_KEY,
+  HAS_COINSTATS_CONFIG,
+  HAS_ETHERSCAN_CONFIG
+} from './config.js';
 import { escapeHTML, makeRequest, safeErrorMessage, safeImageUrl } from './utils.js';
 import { getTokenPriceUSD, getHistoricalTokenPriceUSD } from './prices.js';
 import { monthNames } from './state.js';
@@ -326,6 +333,11 @@ export async function fetchAndShowTransactions(address, networkId = 'ethereum') 
 
   try {
     if (networkId === 'ethereum') {
+      if (!HAS_ETHERSCAN_CONFIG) {
+        if (tbody) setTableMessage(tbody, 'Falta ETH_KEY en js/config.local.js para cargar transacciones Ethereum.');
+        return;
+      }
+
       const safeAddress = encodeURIComponent(address);
       const tokentxUrl = `${ETH_API}?chainid=1&module=account&action=tokentx&address=${safeAddress}&sort=desc&page=1&offset=${ETHERSCAN_PAGE_LIMIT}&apikey=${ETH_KEY}`;
       const txlistUrl = `${ETH_API}?chainid=1&module=account&action=txlist&address=${safeAddress}&sort=desc&page=1&offset=${ETHERSCAN_PAGE_LIMIT}&apikey=${ETH_KEY}`;
@@ -361,6 +373,11 @@ export async function fetchAndShowTransactions(address, networkId = 'ethereum') 
       dedup.sort((a, b) => (Number(b.timeStamp) || 0) - (Number(a.timeStamp) || 0));
       net.txList = dedup;
     } else if (networkId === 'base-wallet') {
+      if (!HAS_COINSTATS_CONFIG) {
+        if (tbody) setTableMessage(tbody, 'Falta COINSTATS_API_KEY en js/config.local.js para cargar transacciones Base.');
+        return;
+      }
+
       const safeAddress = encodeURIComponent(address);
       const url = `${COINSTATS_API}/wallet/transactions?address=${safeAddress}&connectionId=base-wallet&limit=150`;
       let response = await fetch(url, {
@@ -424,7 +441,9 @@ export async function fetchAndShowTransactions(address, networkId = 'ethereum') 
       } else if (tbody) {
         setTableMessage(
           tbody,
-          response.status === 409
+          response.status === 401
+            ? 'CoinStats rechazo la API key (401). Revisa COINSTATS_API_KEY en .env.'
+            : response.status === 409
             ? 'La red se esta sincronizando... Refresca en unos segundos.'
             : 'No se pudieron cargar las transacciones de Base.'
         );
@@ -437,5 +456,3 @@ export async function fetchAndShowTransactions(address, networkId = 'ethereum') 
     if (tbody) setTableMessage(tbody, `No se pudieron cargar las transacciones de ${networkId}.`);
   }
 }
-
-export { networks as _networksRef };

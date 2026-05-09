@@ -1,5 +1,5 @@
 // js/prices.js
-import { COINSTATS_API } from './config.js';
+import { COINSTATS_API, HAS_COINSTATS_CONFIG } from './config.js';
 import { makeRequest } from './utils.js';
 import { state } from './state.js';
 
@@ -14,6 +14,7 @@ function isValidSymbol(symbol) {
 
 export async function getTokenPriceUSD(symbol) {
   try {
+    if (!HAS_COINSTATS_CONFIG) return null;
     if (!isValidSymbol(symbol)) return null;
     
     const s = symbol.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
@@ -85,6 +86,7 @@ export async function getTokenPriceUSD(symbol) {
 
 export async function getHistoricalTokenPriceUSD(symbol, date) {
   try {
+    if (!HAS_COINSTATS_CONFIG) return null;
     if (!isValidSymbol(symbol) || !date) return null;
     
     const s = symbol.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();

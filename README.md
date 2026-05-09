@@ -21,7 +21,7 @@ El proyecto esta construido con HTML, CSS y JavaScript modular sin bundler. Usa 
 
 ## Caracteristicas
 
-- Watchlist de pares Binance `*/USDT`.
+- Watchlist de pares Binance `*/USDT`, con lista inicial si no hay pares guardados.
 - Busqueda de monedas desde `exchangeInfo` de Binance.
 - Actualizacion de precios y variacion 24h por lotes.
 - Grafica de velas con:
@@ -65,6 +65,7 @@ No hay `package.json` ni pipeline de build. La app se sirve como archivos estati
 |-- AGENTS.md
 |-- js/
 |   |-- main.js
+|   |-- bootstrap.js     # carga config.local.js antes de main.js
 |   |-- state.js
 |   |-- config.js
 |   |-- config.local.js   # generado localmente, ignorado por git
@@ -87,36 +88,38 @@ No hay `package.json` ni pipeline de build. La app se sirve como archivos estati
 |   |-- copy-icon.png
 |   |-- search-icon.svg
 |   `-- trash-icon.svg
-|-- test-etherscan.js
-|-- test-import.js
+|-- scripts/
+|   `-- generate-config.mjs
 `-- skills-lock.json
 ```
 
 ## Arquitectura
 
-La aplicacion arranca desde `index.html`, que carga librerias CDN y luego `js/main.js` como modulo.
+La aplicacion arranca desde `index.html`, que carga librerias CDN y luego `js/bootstrap.js` como modulo.
 
 ### Flujo principal
 
-1. `main.js` espera `DOMContentLoaded`.
-2. Restaura pares guardados desde `localStorage`.
-3. Configura defaults globales de Chart.js para velas.
-4. Registra listeners de:
+1. `bootstrap.js` intenta cargar `js/config.local.js`.
+2. `main.js` espera `DOMContentLoaded`.
+3. Restaura pares guardados desde `localStorage`.
+4. Configura defaults globales de Chart.js para velas.
+5. Registra listeners de:
    - busqueda de pares,
    - seleccion de intervalos,
    - toggles de indicadores,
    - acciones de wallet,
    - botones de "ver mas" en transacciones.
-5. Llama `fetchCoinsList()` para poblar el buscador.
-6. Renderiza watchlist con `renderTrackedPairs()`.
-7. Inicia actualizacion periodica de precios por lotes.
-8. Si hay wallet guardada, la consulta automaticamente.
+6. Llama `fetchCoinsList()` para poblar el buscador.
+7. Renderiza watchlist con `renderTrackedPairs()`.
+8. Inicia actualizacion periodica de precios por lotes.
+9. Si hay wallet guardada, la consulta automaticamente.
 
 ### Estado compartido
 
 `js/state.js` concentra estado runtime:
 
 - `tracked`: pares seguidos.
+- `DEFAULT_TRACKED_PAIRS`: pares iniciales usados cuando no hay watchlist guardada.
 - `chartInstance`: instancia Chart.js activa.
 - `currentPair`: par abierto en detalle.
 - `currentInterval`: intervalo actual.
@@ -254,7 +257,7 @@ Base:
 
 ## Configuracion
 
-Las keys ya no viven en `js/config.js`. Ese archivo solo define defaults publicos y lee overrides desde `window.DEFI_TRACKER_CONFIG`, que se genera localmente en `js/config.local.js`.
+Las keys ya no viven en `js/config.js`. Ese archivo solo define defaults publicos y lee overrides desde `globalThis.DEFI_TRACKER_CONFIG`, que se genera localmente en `js/config.local.js`.
 
 Archivos relevantes:
 
@@ -282,7 +285,7 @@ Generar el archivo local que el navegador si puede leer:
 node scripts/generate-config.mjs
 ```
 
-`index.html` carga `js/config.local.js` antes de `js/main.js`. Si no generas ese archivo, Binance seguira funcionando con endpoints publicos, pero CoinStats/Etherscan no tendran API key.
+`index.html` carga `js/bootstrap.js`; ese modulo intenta importar `js/config.local.js` antes de arrancar `js/main.js`. Si no generas ese archivo, Binance seguira funcionando con endpoints publicos, pero CoinStats/Etherscan no tendran API key y la seccion wallet mostrara un aviso de configuracion.
 
 Importante: aunque `.env` y `config.local.js` esten ignorados por git, cualquier key usada desde navegador sigue siendo visible para quien abra la app. Para produccion real, mueve las llamadas con keys a un proxy o funcion serverless.
 
@@ -290,9 +293,9 @@ Importante: aunque `.env` y `config.local.js` esten ignorados por git, cualquier
 
 `index.html` incluye una politica CSP basica:
 
-- limita scripts a la app y `cdn.jsdelivr.net`,
+- limita scripts a la app y `cdn.jsdelivr.net`; permite inline por compatibilidad con extensiones de wallet/navegador,
 - limita conexiones a Binance, CoinStats y Etherscan,
-- bloquea `object-src` y framing externo,
+- bloquea `object-src`,
 - permite imagenes HTTPS y assets locales,
 - evita enviar `Referer` con `referrer=no-referrer`.
 

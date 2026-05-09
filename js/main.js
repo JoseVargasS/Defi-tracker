@@ -1,14 +1,18 @@
 // js/main.js
 //Importa todo y hace el DOMContentLoaded (reemplaza el app.js original).
-import { state } from './state.js';
+import { DEFAULT_TRACKED_PAIRS, state } from './state.js';
 import { formatPrice, safeErrorMessage } from './utils.js';
 import { fetchCoinsList, fetchPriceBatch, fetch24hStatsBatch } from './exchange.js';
-import { renderTrackedPairs, addTrackedPair, removeTrackedPair, renderCandlestick } from './pairs.js';
+import { renderTrackedPairs, addTrackedPair, renderCandlestick } from './pairs.js';
 import { renderSavedWallets, saveWallet, fetchAndRenderWallet, getSavedWallets } from './wallet.js';
-import { fetchAndShowTransactions, loadTx } from './transactions.js';
+import { loadTx } from './transactions.js';
 import { CHART_THEME } from './chartAdvanced.js';
 
-document.addEventListener('DOMContentLoaded', async function () {
+let appInitialized = false;
+
+async function initApp() {
+  if (appInitialized) return;
+  appInitialized = true;
 
   // Suppress "User rejected the request" errors from external wallet extensions
   window.addEventListener('unhandledrejection', function (event) {
@@ -19,8 +23,16 @@ document.addEventListener('DOMContentLoaded', async function () {
   });
 
   // Restaurar tracked pairs
-  if (localStorage.getItem('trackedPairs')) {
-    try { state.tracked = JSON.parse(localStorage.getItem('trackedPairs')) || []; } catch { state.tracked = []; }
+  const savedTrackedPairs = localStorage.getItem('trackedPairs');
+  if (savedTrackedPairs) {
+    try {
+      const parsed = JSON.parse(savedTrackedPairs);
+      state.tracked = Array.isArray(parsed) && parsed.length ? parsed : [...DEFAULT_TRACKED_PAIRS];
+    } catch {
+      state.tracked = [...DEFAULT_TRACKED_PAIRS];
+    }
+  } else {
+    localStorage.setItem('trackedPairs', JSON.stringify(state.tracked));
   }
 
   // Chart.js defaults (si Chart está cargado)
@@ -105,7 +117,6 @@ document.addEventListener('DOMContentLoaded', async function () {
     intervalSelector.addEventListener('click', (e) => {
       if (e.target.tagName === 'BUTTON') {
         state.currentInterval = e.target.dataset.interval;
-        window.currentInterval = state.currentInterval;
         intervalSelector.querySelectorAll('button').forEach(b => b.classList.remove('active'));
         e.target.classList.add('active');
         if (state.currentPair) renderCandlestick(state.currentPair, state.currentInterval);
@@ -276,7 +287,10 @@ document.addEventListener('DOMContentLoaded', async function () {
   const btnLoadMoreBase = document.getElementById('btnLoadMoreBase');
   if (btnLoadMoreBase) btnLoadMoreBase.addEventListener('click', () => loadTx('base-wallet'));
 
-  // Exponer globalmente si otras partes del HTML/JS esperan funciones globales
-  window.fetchAndShowTransactions = fetchAndShowTransactions;
-  window.removeTrackedPair = removeTrackedPair;
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp, { once: true });
+} else {
+  initApp();
+}

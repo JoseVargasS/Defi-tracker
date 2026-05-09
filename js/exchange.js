@@ -127,10 +127,6 @@ export async function fetchKlines(symbol, interval) {
 }
 
 // ── Invalidate klines cache entry (call when switching pair/interval) ──────────
-export function invalidateKlinesCache(symbol, interval) {
-  _klinesCache.delete(`${symbol}-${interval}`);
-}
-
 // ── fetchCoinsList with 24h localStorage cache ─────────────────────────────────
 const COINS_CACHE_KEY = 'coinsListCache';
 const COINS_CACHE_TTL = 24 * 60 * 60 * 1000;

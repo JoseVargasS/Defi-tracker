@@ -7,10 +7,6 @@ export function formatPrice(price) {
   return price < 1 ? price.toFixed(4) : price.toFixed(2);
 }
 
-export function fmt(n, d = 2) {
-  return Number(n).toLocaleString('en', { minimumFractionDigits: d, maximumFractionDigits: d });
-}
-
 export function escapeHTML(value) {
   return String(value ?? '').replace(/[&<>"']/g, char => ({
     '&': '&amp;',
@@ -41,14 +37,6 @@ export function safeErrorMessage(error, fallback = 'Ocurrio un error al cargar l
   return message;
 }
 
-export function showMessage(el, msg, type = 'info') {
-  if (!el) return;
-  const message = document.createElement('div');
-  message.className = `msg ${String(type).replace(/[^a-z-]/gi, '') || 'info'}`;
-  message.textContent = String(msg ?? '');
-  el.replaceChildren(message);
-}
-
 function redactUrl(value) {
   try {
     const parsed = new URL(value);
@@ -64,7 +52,12 @@ function redactUrl(value) {
 export async function makeRequest(url, options = {}, retryCount = 0) {
   try {
     const headers = { 'Accept': 'application/json', ...(options.headers || {}) };
-    if (url.startsWith(COINSTATS_API)) headers['X-API-KEY'] = COINSTATS_API_KEY;
+    if (url.startsWith(COINSTATS_API)) {
+      if (!COINSTATS_API_KEY || COINSTATS_API_KEY === 'replace-me') {
+        throw new Error('Missing COINSTATS_API_KEY runtime config');
+      }
+      headers['X-API-KEY'] = COINSTATS_API_KEY;
+    }
     const res = await fetch(url, { ...options, headers });
     
     if (res.status === 429 && retryCount < 1) {

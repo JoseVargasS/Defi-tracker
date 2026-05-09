@@ -46,7 +46,8 @@ styles/wallet.css         Panel wallet y balances
 styles/crypto.css         Watchlist, panel de mercado, chart
 styles/transactions.css   Tablas/listas de transacciones
 styles/responsive.css     Breakpoints
-js/main.js                Bootstrap, listeners, polling
+js/bootstrap.js           Carga config local opcional antes de la app
+js/main.js                Arranque DOM, listeners, polling
 js/state.js               Estado compartido y caches
 js/config.js              Endpoints publicos y lectura de config local
 js/config.local.js        Generado desde .env, ignorado por git
@@ -145,6 +146,7 @@ Preferir agregar estado compartido en `js/state.js`.
 Campos importantes:
 
 - `tracked`
+- `DEFAULT_TRACKED_PAIRS`
 - `chartInstance`
 - `currentPair`
 - `currentInterval`
@@ -194,6 +196,8 @@ Reglas de seguridad en codigo:
 - mostrar errores con `safeErrorMessage()`,
 - no loguear URLs con `apikey`, headers, payloads completos ni respuestas completas de APIs,
 - mantener la CSP de `index.html` sincronizada si se agregan nuevos dominios,
+- la CSP permite `unsafe-inline` en `script-src` por compatibilidad con extensiones de wallet; no agregar scripts inline propios,
+- mantener `index.html` apuntando a `js/bootstrap.js`, no directo a `main.js`, para respetar la carga previa de config,
 - preferir `replaceChildren()`, `textContent` y nodos DOM para UI con datos no confiables.
 
 ## Verificacion antes de finalizar

@@ -1,6 +1,15 @@
 // js/state.js
+export const DEFAULT_TRACKED_PAIRS = [
+  'ETHUSDT',
+  'BTCUSDT',
+  'USUALUSDT',
+  'VELODROMEUSDT',
+  'BATUSDT',
+  'BIOUSDT'
+];
+
 export const state = {
-  tracked: [],
+  tracked: [...DEFAULT_TRACKED_PAIRS],
   chartInstance: null,
   currentPair: null,
   currentInterval: '1d',

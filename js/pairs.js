@@ -266,7 +266,7 @@ const formatScaleValue = (scaleId, value) => {
   return value >= 100 ? value.toFixed(2) : value.toFixed(4);
 };
 
-export const crosshairPlugin = {
+const crosshairPlugin = {
   id: 'crosshair',
   afterInit(chart) {
     if (!chart.canvas) return;
@@ -383,7 +383,7 @@ export const crosshairPlugin = {
   }
 };
 
-export const currentPricePlugin = {
+const currentPricePlugin = {
   id: 'currentPrice',
   afterDraw(chart) {
     const priceScale = chart.scales.price;
@@ -433,7 +433,7 @@ export const currentPricePlugin = {
   }
 };
 
-export const indicatorLegendPlugin = {
+const indicatorLegendPlugin = {
   id: 'indicatorLegend',
   afterDraw(chart) {
     const fallbackIndex = chart.data.datasets[0]?.data?.length - 1 ?? 0;
@@ -505,7 +505,7 @@ export const indicatorLegendPlugin = {
   }
 };
 
-export function createPairHtml(symbol, price, stats) {
+function createPairHtml(symbol, price, stats) {
   const base = symbol.replace('USDT', '');
   const safeBase = escapeHTML(base);
   const safeSymbol = escapeHTML(symbol);
@@ -549,14 +549,23 @@ export async function renderTrackedPairs() {
   if (!container) return;
 
   const fragment = document.createDocumentFragment();
-  const rows = await Promise.all(state.tracked.map(async symbol => {
-    const [price, stats] = await Promise.all([fetchPrice(symbol), fetch24hStats(symbol)]);
-    return createPairHtml(symbol, price, stats);
-  }));
+  for (const symbol of state.tracked) {
+    fragment.appendChild(createPairHtml(symbol, '0.00', {}));
+  }
 
-  rows.forEach(row => fragment.appendChild(row));
   container.replaceChildren(fragment);
-  window.removeTrackedPair = removeTrackedPair;
+
+  state.tracked.forEach(async symbol => {
+    try {
+      const [price, stats] = await Promise.all([fetchPrice(symbol), fetch24hStats(symbol)]);
+      if (!state.tracked.includes(symbol)) return;
+
+      const current = container.querySelector(`.tracked-pair[data-symbol="${symbol}"]`);
+      if (current) current.replaceWith(createPairHtml(symbol, price, stats));
+    } catch (error) {
+      console.error('Error actualizando par:', error);
+    }
+  });
 }
 
 export async function addTrackedPair(symbol) {
@@ -579,7 +588,7 @@ export async function addTrackedPair(symbol) {
   }
 }
 
-export function removeTrackedPair(symbol) {
+function removeTrackedPair(symbol) {
   state.tracked = state.tracked.filter(item => item !== symbol);
   localStorage.setItem('trackedPairs', JSON.stringify(state.tracked));
   document.querySelector(`.tracked-pair[data-symbol="${symbol}"]`)?.remove();
@@ -772,7 +781,7 @@ export async function renderCandlestick(symbol, interval) {
   }
 }
 
-export function updatePairUI(symbol, price, stats = {}) {
+function updatePairUI(symbol, price, stats = {}) {
   const pairTitle = document.getElementById('pair-title');
   const pairPrice = document.getElementById('pair-price');
   if (!pairTitle || !pairPrice) return;
@@ -810,7 +819,7 @@ export function updatePairUI(symbol, price, stats = {}) {
   `;
 }
 
-export async function updatePairInfo(symbol) {
+async function updatePairInfo(symbol) {
   if (state.currentPair !== symbol) return;
 
   const [price, stats] = await Promise.all([fetchPrice(symbol), fetch24hStats(symbol)]);
@@ -831,7 +840,7 @@ export async function updatePairInfo(symbol) {
   chart.update('none');
 }
 
-export async function showPairDetails(symbol) {
+async function showPairDetails(symbol) {
   const pairDetails = document.getElementById('pair-details');
   if (!pairDetails) return;
 

@@ -37,7 +37,7 @@ export function normalizeKline(kline) {
   };
 }
 
-export function calculateRSI(data, period = 14) {
+function calculateRSI(data, period = 14) {
   if (!Array.isArray(data) || data.length <= period) {
     return (data || []).map(d => ({ x: d.x, y: null }));
   }

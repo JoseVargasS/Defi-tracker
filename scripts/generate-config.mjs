@@ -34,7 +34,7 @@ if (!fs.existsSync(envPath)) {
 }
 
 const config = parseEnv(fs.readFileSync(envPath, 'utf8'));
-const output = `window.DEFI_TRACKER_CONFIG = ${JSON.stringify(config, null, 2)};\n`;
+const output = `globalThis.DEFI_TRACKER_CONFIG = ${JSON.stringify(config, null, 2)};\n`;
 
 fs.writeFileSync(outPath, output, 'utf8');
 console.log(`Generated ${path.relative(root, outPath)}`);

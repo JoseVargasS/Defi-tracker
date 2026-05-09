@@ -1,6 +1,6 @@
 // js/wallet.js
 // Saved wallets, multichain balances and wallet dashboard rendering.
-import { COINSTATS_API, COINSTATS_API_KEY, SUPPORTED_CHAINS } from './config.js';
+import { COINSTATS_API, COINSTATS_API_KEY, HAS_COINSTATS_CONFIG, SUPPORTED_CHAINS } from './config.js';
 import { fetchAndShowTransactions } from './transactions.js';
 import { escapeHTML, safeErrorMessage, safeImageUrl } from './utils.js';
 
@@ -102,7 +102,7 @@ async function fetchChainBalances(address, chain) {
 
     if (!response.ok) {
       console.warn(`Failed to fetch ${chain.name}:`, response.status);
-      return { chain, balances: [] };
+      return { chain, balances: [], unauthorized: response.status === 401 };
     }
 
     const balances = await response.json();
@@ -117,6 +117,14 @@ export async function fetchAndRenderWallet(address) {
   const walletDataEl = document.getElementById('walletData');
   if (!walletDataEl) return;
 
+  if (!HAS_COINSTATS_CONFIG) {
+    setWalletMessage(
+      walletDataEl,
+      'Falta cargar js/config.local.js con una COINSTATS_API_KEY valida. Ejecuta node scripts/generate-config.mjs y sirve la app desde la raiz del proyecto.'
+    );
+    return;
+  }
+
   setWalletMessage(walletDataEl, 'Cargando balances de multiples redes...', 'wallet-loading');
 
   const transactionsPromise = fetchAndShowTransactions(address, 'all')
@@ -128,6 +136,15 @@ export async function fetchAndRenderWallet(address) {
       BALANCE_CONCURRENCY,
       chain => fetchChainBalances(address, chain)
     );
+
+    if (chainResults.some(result => result.unauthorized)) {
+      setWalletMessage(
+        walletDataEl,
+        'CoinStats rechazo la API key (401). Revisa COINSTATS_API_KEY en .env, vuelve a generar js/config.local.js y recarga sin cache.'
+      );
+      await transactionsPromise;
+      return;
+    }
 
     let allAssets = [];
     const byChain = {};
