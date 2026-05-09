@@ -14,6 +14,7 @@ El proyecto esta construido con HTML, CSS y JavaScript modular sin bundler. Usa 
 - [Wallets y transacciones](#wallets-y-transacciones)
 - [Configuracion](#configuracion)
 - [Ejecucion local](#ejecucion-local)
+- [Deploy en GitHub Pages](#deploy-en-github-pages)
 - [Verificacion](#verificacion)
 - [Convenciones de desarrollo](#convenciones-de-desarrollo)
 - [Problemas conocidos](#problemas-conocidos)
@@ -90,6 +91,8 @@ No hay `package.json` ni pipeline de build. La app se sirve como archivos estati
 |   `-- trash-icon.svg
 |-- scripts/
 |   `-- generate-config.mjs
+|-- .github/
+|   `-- workflows/deploy-pages.yml
 `-- skills-lock.json
 ```
 
@@ -285,7 +288,7 @@ Generar el archivo local que el navegador si puede leer:
 node scripts/generate-config.mjs
 ```
 
-`index.html` carga `js/bootstrap.js`; ese modulo intenta importar `js/config.local.js` antes de arrancar `js/main.js`. Si no generas ese archivo, Binance seguira funcionando con endpoints publicos, pero CoinStats/Etherscan no tendran API key y la seccion wallet mostrara un aviso de configuracion.
+`index.html` carga `js/bootstrap.js`; ese modulo intenta importar `js/config.local.js` antes de arrancar `js/main.js`. Si no generas ese archivo localmente o no lo generas en el artefacto de GitHub Pages, Binance seguira funcionando con endpoints publicos, pero CoinStats/Etherscan no tendran API key y la seccion wallet mostrara un aviso de configuracion.
 
 Importante: aunque `.env` y `config.local.js` esten ignorados por git, cualquier key usada desde navegador sigue siendo visible para quien abra la app. Para produccion real, mueve las llamadas con keys a un proxy o funcion serverless.
 
@@ -322,6 +325,27 @@ Luego abrir:
 ```text
 http://localhost:8000
 ```
+
+## Deploy en GitHub Pages
+
+`js/config.local.js` esta ignorado por git, por eso no aparece si GitHub Pages publica directamente la rama. Para desplegar sin commitear keys, usa el workflow incluido en `.github/workflows/deploy-pages.yml`.
+
+Configura estos repository secrets en GitHub:
+
+```text
+COINSTATS_API_KEY
+ETH_KEY
+```
+
+Luego en GitHub:
+
+1. Ve a `Settings > Secrets and variables > Actions`.
+2. Crea los secrets anteriores con tus keys reales.
+3. Ve a `Settings > Pages`.
+4. En `Build and deployment`, selecciona `Source: GitHub Actions`.
+5. Haz push a `main` o `master`, o ejecuta manualmente `Deploy GitHub Pages`.
+
+El workflow genera `js/config.local.js` dentro de `dist/` antes de publicar. El archivo no queda versionado en el repositorio, pero si queda disponible en la pagina desplegada.
 
 ## Verificacion
 

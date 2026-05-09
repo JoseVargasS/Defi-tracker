@@ -52,6 +52,7 @@ js/state.js               Estado compartido y caches
 js/config.js              Endpoints publicos y lectura de config local
 js/config.local.js        Generado desde .env, ignorado por git
 scripts/generate-config.mjs Genera js/config.local.js
+.github/workflows/deploy-pages.yml Genera config y publica GitHub Pages
 js/utils.js               Fetch wrapper y formateo basico
 js/exchange.js            Binance prices/stats/klines/exchangeInfo
 js/pairs.js               Watchlist y render Chart.js
@@ -186,7 +187,8 @@ No commitear:
 Si se prepara deploy real:
 
 - mover llamadas con keys a proxy/serverless,
-- no llamar APIs con secretos desde navegador,
+- para GitHub Pages estatico, generar `js/config.local.js` en el workflow desde repository secrets,
+- no commitear `js/config.local.js`,
 - actualizar README.
 
 Reglas de seguridad en codigo:

@@ -28,12 +28,20 @@ function parseEnv(source) {
     }, {});
 }
 
-if (!fs.existsSync(envPath)) {
-  console.error('Missing .env. Copy .env.example to .env and fill your keys.');
+const fileConfig = fs.existsSync(envPath)
+  ? parseEnv(fs.readFileSync(envPath, 'utf8'))
+  : {};
+const envConfig = allowedKeys.reduce((acc, key) => {
+  if (process.env[key]) acc[key] = process.env[key];
+  return acc;
+}, {});
+const config = { ...fileConfig, ...envConfig };
+
+if (!config.COINSTATS_API_KEY || !config.ETH_KEY) {
+  console.error('Missing API keys. Provide .env locally or COINSTATS_API_KEY/ETH_KEY environment variables in CI.');
   process.exit(1);
 }
 
-const config = parseEnv(fs.readFileSync(envPath, 'utf8'));
 const output = `globalThis.DEFI_TRACKER_CONFIG = ${JSON.stringify(config, null, 2)};\n`;
 
 fs.writeFileSync(outPath, output, 'utf8');
