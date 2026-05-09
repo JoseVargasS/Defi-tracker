@@ -1,225 +1,374 @@
-# DEFI-Tracker
+# DeFi & Crypto Terminal
 
-> Documentación completa para el proyecto **DEFI-Tracker** (README.md en español).
+Aplicacion web estatica para consultar balances de wallets, revisar transacciones en Ethereum/Base y seguir pares spot USDT con una grafica de velas estilo exchange.
 
----
+El proyecto esta construido con HTML, CSS y JavaScript modular sin bundler. Usa Chart.js con `chartjs-chart-financial` para velas, Binance para mercado spot, Etherscan para transacciones de Ethereum y CoinStats para balances/transacciones multired.
 
-## Tabla de contenidos
+## Contenido
 
-1. [Resumen del proyecto](#resumen-del-proyecto)
-2. [Características principales](#caracter%C3%ADsticas-principales)
-3. [Demo / capturas (placeholders)](#demo--capturas-placeholders)
-4. [Stack tecnológico](#stack-tecnol%C3%B3gico)
-5. [Estructura de archivos](#estructura-de-archivos)
-6. [Descripción archivo por archivo](#descripci%C3%B3n-archivo-por-archivo)
-7. [Configuración y variables de entorno](#configuraci%C3%B3n-y-variables-de-entorno)
-8. [Inicio rápido — Desarrollo local](#inicio-r%C3%A1pido--desarrollo-local)
-9. [Arquitectura y flujo de datos](#arquitectura-y-flujo-de-datos)
-10. [Problemas comunes y troubleshooting](#problemas-comunes-y-troubleshooting)
-11. [Consideraciones de seguridad](#consideraciones-de-seguridad)
-12. [Testing](#testing)
-13. [Despliegue](#despliegue)
-14. [Guía de contribución](#gu%C3%ADa-de-contribuci%C3%B3n)
-15. [Roadmap & mejoras sugeridas](#roadmap--mejoras-sugeridas)
-16. [Licencia & contacto](#licencia--contacto)
+- [Caracteristicas](#caracteristicas)
+- [Stack](#stack)
+- [Estructura](#estructura)
+- [Arquitectura](#arquitectura)
+- [Grafica de velas](#grafica-de-velas)
+- [Wallets y transacciones](#wallets-y-transacciones)
+- [Configuracion](#configuracion)
+- [Ejecucion local](#ejecucion-local)
+- [Verificacion](#verificacion)
+- [Convenciones de desarrollo](#convenciones-de-desarrollo)
+- [Problemas conocidos](#problemas-conocidos)
+- [Roadmap](#roadmap)
 
----
+## Caracteristicas
 
-## Resumen del proyecto
+- Watchlist de pares Binance `*/USDT`.
+- Busqueda de monedas desde `exchangeInfo` de Binance.
+- Actualizacion de precios y variacion 24h por lotes.
+- Grafica de velas con:
+  - Velas OHLC.
+  - Bandas de Bollinger.
+  - Volumen en panel inferior.
+  - Stoch RSI con lineas `%K` y `%D`.
+  - Crosshair con fecha/precio.
+  - Barra OHLC superior que no tapa las velas.
+  - Etiqueta de precio actual fuera del area de velas.
+  - Tags de indicadores en el margen derecho, separados para no sobreponerse.
+- Consulta de wallet EVM.
+- Guardado de wallets en `localStorage`.
+- Balances multired desde CoinStats.
+- Historial de transacciones Ethereum/ERC20 y Base.
+- Calculo de valor USD actual, valor historico y P&L aproximado por transaccion.
+- Interfaz oscura, compacta y orientada a trading.
 
-**DEFI-Tracker** es una aplicación web estática y ligera para monitorizar tokens DeFi y carteras (wallets). Está construida con HTML, CSS y JavaScript (ES6 modules) y obtiene precios y datos de APIs externas. El propósito es ofrecer un tablero sencillo para consultar balances, precios y guardar direcciones de wallet en `localStorage`.
+## Stack
 
----
+- HTML5.
+- CSS3 con imports por dominio.
+- JavaScript ES Modules.
+- Chart.js.
+- `chartjs-adapter-date-fns`.
+- `chartjs-chart-financial`.
+- APIs:
+  - Binance Spot API.
+  - Etherscan API v2.
+  - CoinStats Open API.
 
-## Características principales
+No hay `package.json` ni pipeline de build. La app se sirve como archivos estaticos.
 
-- Interfaz SPA (single-page) estática.
-- Búsqueda de tokens por símbolo/contrato y consulta de precio.
-- Guardado de wallets en `localStorage` y renderizado rápido.
-- Módulos JavaScript separados (`utils`, `prices`, `wallet`, `app`).
-- Diseño responsive básico.
+## Estructura
 
----
-
-## Demo / capturas (placeholders)
-
-Sustituye estas rutas por imágenes reales en `images/` si quieres mostrar capturas en el README:
-
-- `images/screenshot-dashboard.png` — vista principal con lista de tokens y wallets.
-- `images/screenshot-search.png` — panel de búsqueda de tokens.
-
----
-
-## Stack tecnológico
-
-- HTML5
-- CSS3
-- JavaScript (ES6 modules, `fetch`, `async/await`)
-- Opcional: servidor estático simple para desarrollo (Python `http.server`, `serve` npm)
-
----
-
-## Estructura de archivos
-
+```text
+.
+|-- index.html
+|-- styles.css
+|-- README.md
+|-- AGENTS.md
+|-- js/
+|   |-- main.js
+|   |-- state.js
+|   |-- config.js
+|   |-- config.local.js   # generado localmente, ignorado por git
+|   |-- utils.js
+|   |-- exchange.js
+|   |-- pairs.js
+|   |-- chartAdvanced.js
+|   |-- wallet.js
+|   |-- transactions.js
+|   `-- prices.js
+|-- styles/
+|   |-- general.css
+|   |-- forms.css
+|   |-- wallet.css
+|   |-- crypto.css
+|   |-- transactions.css
+|   `-- responsive.css
+|-- images/
+|   |-- Eth-icon-purple.png
+|   |-- copy-icon.png
+|   |-- search-icon.svg
+|   `-- trash-icon.svg
+|-- test-etherscan.js
+|-- test-import.js
+`-- skills-lock.json
 ```
-Defi-tracker/
-├─ images/           # capturas y assets
-├─ js/               # módulos JS
-│  ├─ app.js         # entrada principal y lógica UI
-│  ├─ utils.js       # utilidades (fetch wrapper, formateo, debounce)
-│  ├─ prices.js      # consultas a APIs de precios
-│  └─ wallet.js      # manejo de wallets y localStorage
-├─ index.html        # página principal
-├─ styles.css        # estilos globales
-└─ README.md         # este archivo
+
+## Arquitectura
+
+La aplicacion arranca desde `index.html`, que carga librerias CDN y luego `js/main.js` como modulo.
+
+### Flujo principal
+
+1. `main.js` espera `DOMContentLoaded`.
+2. Restaura pares guardados desde `localStorage`.
+3. Configura defaults globales de Chart.js para velas.
+4. Registra listeners de:
+   - busqueda de pares,
+   - seleccion de intervalos,
+   - toggles de indicadores,
+   - acciones de wallet,
+   - botones de "ver mas" en transacciones.
+5. Llama `fetchCoinsList()` para poblar el buscador.
+6. Renderiza watchlist con `renderTrackedPairs()`.
+7. Inicia actualizacion periodica de precios por lotes.
+8. Si hay wallet guardada, la consulta automaticamente.
+
+### Estado compartido
+
+`js/state.js` concentra estado runtime:
+
+- `tracked`: pares seguidos.
+- `chartInstance`: instancia Chart.js activa.
+- `currentPair`: par abierto en detalle.
+- `currentInterval`: intervalo actual.
+- `chartZoom`: cantidad de velas visibles.
+- `chartView`: configuracion de zoom/pan.
+- `chartIndicators`: toggles para Bollinger, volumen y Stoch RSI.
+- caches de precios, charts historicos y requests en curso.
+
+Mantener estado comun aqui evita variables globales dispersas.
+
+## Grafica de velas
+
+La grafica vive principalmente en:
+
+- `js/pairs.js`: crea datasets, escalas, plugins visuales, renderiza y maneja zoom/pan.
+- `js/chartAdvanced.js`: normaliza klines, calcula indicadores y dibuja tooltip OHLC.
+- `js/exchange.js`: trae klines desde Binance y agrega intervalos sinteticos.
+
+### Datos
+
+`fetchKlines(symbol, interval)` consulta:
+
+```text
+https://api.binance.com/api/v3/klines
 ```
 
----
-
-## Descripción archivo por archivo
-
-### `index.html`
-
-- Punto de entrada de la aplicación.
-- Debe contener la estructura del layout: header, formulario de búsqueda, lista de resultados y sección de wallets guardadas.
-- Incluir `styles.css` y los módulos JS (`<script type="module" src="js/app.js"></script>`).
-- Mejora recomendada: añadir etiquetas meta (`viewport`) y roles ARIA para accesibilidad.
-
-### `styles.css`
-
-- Estilos globales y componentes UI.
-- Mejora recomendada: usar variables CSS (`--color-primary`, `--gap`) para facilitar temas y mantenibilidad.
-
-### `js/app.js`
-
-- Orquesta la aplicación: registra listeners, valida inputs, llama a `prices.js` y `wallet.js`, y renderiza en DOM.
-- Añade manejo de errores y estados (loading, empty, error).
-
-### `js/utils.js`
-
-- Helpers reutilizables: `makeRequest(url, opts)`, `formatCurrency(value)`, `debounce(fn, ms)`.
-- `makeRequest` debería manejar errores HTTP, parseo JSON y lanzar errores amigables.
-
-### `js/prices.js`
-
-- Funciones para obtener precios: p. ej. `getTokenPriceByContract(contract)` y `getTokenPriceUSD(symbol)`.
-- Considerar backoff/reintentos y caché temporal (TTL) para evitar límites de API.
-
-### `js/wallet.js`
-
-- Gestión de wallets guardadas: `getSavedWallets()`, `saveWallet(addr)`, `removeWallet(addr)`, `renderSavedWallets(container)`.
-- Función `fetchAndRenderWallet(addr)` para obtener balances y mostrar resumen.
-
----
-
-## Configuración y variables de entorno
-
-Crea `js/config.js` basado en `js/config.example.js` (NO incluir keys reales en el repo):
+Los klines se normalizan a:
 
 ```js
-// js/config.example.js
-export const ETH_API = "https://api.ejemplo.com";
-export const ETH_KEY = "<TU_API_KEY_AQUI>";
-```
-
-Añade `js/config.js` a `.gitignore` si usas keys locales. Para despliegues públicos, usa funciones serverless o un proxy para no exponer keys en cliente.
-
----
-
-## Inicio rápido — Desarrollo local
-
-### Requisitos
-
-- Node.js (opcional) o Python para servidor estático.
-
-### Servir estático rápido
-
-Con Python (desde la raíz del proyecto):
-
-```bash
-python -m http.server 8080
-# Abrir http://localhost:8080
-```
-
-Con `serve` (npm):
-
-```bash
-npm i -g serve
-serve . -l 8080
-```
-
-Recomendación: añadir un `package.json` con script `start`:
-
-```json
 {
-  "scripts": {
-    "start": "serve . -l 8080"
-  }
+  x, // timestamp
+  o, // open
+  h, // high
+  l, // low
+  c, // close
+  v, // base volume
+  q  // quote volume
 }
 ```
 
----
+Para `3M` y `5d`, `exchange.js` agrega velas desde datos Binance y conserva volumen base/quote.
 
-## Arquitectura y flujo de datos
+### Indicadores actuales
 
-1. El usuario introduce un símbolo de token o una dirección de wallet.
-2. `app.js` valida y despacha la petición a `prices.js` o `wallet.js`.
-3. `prices.js` consulta la API externa y devuelve JSON con el precio.
-4. `app.js` renderiza los resultados en el DOM.
-5. Wallets guardadas se mantienen en `localStorage` y se re-renderizan al cargar la página.
+Los indicadores activos son configurables con `state.chartIndicators`:
 
----
+```js
+chartIndicators: {
+  bollinger: true,
+  volume: true,
+  stochRsi: true
+}
+```
 
-## Problemas comunes y troubleshooting
+Datasets generados:
 
-- **400 Bad Request (API)**: revisa parámetros de consulta y que la API key sea válida.
-- **CORS**: muchas APIs bloquean peticiones desde el navegador. Usa un proxy o función serverless.
-- **Errores tipo `res is not defined`**: revisar el scope de variables y el uso de `await/async` — envolver en `try/catch`.
-- **Requests lentos**: implementar debounce en inputs y cache de resultados con TTL.
+- `candlestick`: precio.
+- `BB Upper`, `BB Lower`, `BB Basis`: Bollinger Bands.
+- `Volume`: barras con color segun vela alcista/bajista.
+- `Stoch RSI %K`, `Stoch RSI %D`: oscilador.
+- `Stoch RSI 80`, `Stoch RSI 20`: guias horizontales.
 
----
+### Plugins visuales
 
-## Consideraciones de seguridad
+`pairs.js` define:
 
-- No cometas API keys ni secretos.
-- Valida y sanitiza inputs del usuario.
-- Para operaciones sensibles o con claves, hazlas en el servidor.
-- Añade límites y validaciones si aceptas direcciones públicas para evitar abusos.
+- `crosshairPlugin`: linea vertical/horizontal y labels de eje.
+- `currentPricePlugin`: linea horizontal y etiqueta de precio actual fuera de las velas.
+- `indicatorLegendPlugin`: leyendas de volumen y Stoch RSI, mas tags separados en el margen derecho.
 
----
+`chartAdvanced.js` define:
 
-## Testing
+- `createAdvancedTooltipPlugin()`: barra superior OHLC compacta. Esta barra usa padding superior reservado para no tapar velas.
 
-- Añade pruebas unitarias para utilidades (`utils.js`) con Jest o Vitest.
-- Pruebas E2E/smoke con Playwright o Puppeteer: flujos como búsqueda de token, guardado de wallet y renderizado.
+### Reglas importantes de la grafica
 
----
+- La etiqueta de precio actual debe quedar fuera del area de velas.
+- La barra OHLC no debe flotar encima de las candles.
+- Los tags de indicadores deben ir en el margen derecho.
+- Si dos tags de Stoch RSI estan cerca, deben separarse automaticamente.
+- El padding derecho debe ser solo el necesario para labels/tags, no una franja vacia excesiva.
+- Al cambiar un indicador se re-renderiza la grafica con `renderCandlestick()`.
 
-## Despliegue
+## Wallets y transacciones
 
-Opciones sencillas:
+### Wallets
 
-- **GitHub Pages**: habilita Pages en el repositorio.
-- **Netlify / Vercel**: conectar el repo y desplegar como sitio estático.
-- Para claves/secretos, usa variables de entorno del proveedor o funciones serverless.
+`js/wallet.js` gestiona:
 
----
+- wallets guardadas en `localStorage`,
+- fetch de balances por red,
+- render del dashboard de assets,
+- disparo de carga de transacciones.
 
-## Guía de contribución
+`SUPPORTED_CHAINS` esta en `js/config.js`.
 
-- Mantén PRs pequeños y con foco único.
-- Incluye capturas de pantalla para cambios de UI.
-- Agrega tests para nuevas utilidades.
-- Sigue un estilo (ESLint / Prettier recomendado).
+### Transacciones
 
----
+`js/transactions.js` gestiona dos redes:
 
-## Roadmap & mejoras sugeridas
+```js
+ethereum
+base-wallet
+```
 
-- Historial de transacciones y parsing de eventos on-chain.
-- Integración de varias fuentes de precio con fallback ponderado.
-- Tema claro/oscuro y mejor responsividad.
-- Migración a framework ligero (React, Svelte) si la UI crece.
-- CI: pruebas automáticas y deploy (GitHub Actions).
+Ethereum:
 
----
+- Usa Etherscan API v2.
+- Pide en paralelo:
+  - `tokentx`,
+  - `txlist`.
+- Convierte transacciones ETH nativas a formato compatible con tokens.
+- Deduplica por hash/token/value.
+
+Base:
+
+- Usa CoinStats wallet transactions.
+- Primero intenta leer transacciones.
+- Solo dispara `PATCH` de sincronizacion si CoinStats responde `409`.
+- Hace retry corto despues del sync.
+
+### Precios y P&L
+
+`js/prices.js` consulta CoinStats:
+
+- precio actual por simbolo,
+- chart historico por coin id,
+- precio historico mas cercano a la fecha de la transaccion.
+
+`transactions.js` usa concurrencia limitada para precargar precios por pagina y evitar demoras innecesarias por llamadas secuenciales.
+
+## Configuracion
+
+Las keys ya no viven en `js/config.js`. Ese archivo solo define defaults publicos y lee overrides desde `window.DEFI_TRACKER_CONFIG`, que se genera localmente en `js/config.local.js`.
+
+Archivos relevantes:
+
+```text
+.env                  # local, contiene keys reales, ignorado por git
+.env.example          # ejemplo versionable sin secretos
+js/config.js          # wrapper sin secretos
+js/config.local.js    # generado desde .env, ignorado por git
+scripts/generate-config.mjs
+```
+
+Crear o actualizar `.env`:
+
+```env
+BINANCE_API=https://api.binance.com/api/v3
+COINSTATS_API=https://openapiv1.coinstats.app
+COINSTATS_API_KEY=replace-me
+ETH_API=https://api.etherscan.io/v2/api
+ETH_KEY=replace-me
+```
+
+Generar el archivo local que el navegador si puede leer:
+
+```powershell
+node scripts/generate-config.mjs
+```
+
+`index.html` carga `js/config.local.js` antes de `js/main.js`. Si no generas ese archivo, Binance seguira funcionando con endpoints publicos, pero CoinStats/Etherscan no tendran API key.
+
+Importante: aunque `.env` y `config.local.js` esten ignorados por git, cualquier key usada desde navegador sigue siendo visible para quien abra la app. Para produccion real, mueve las llamadas con keys a un proxy o funcion serverless.
+
+## Ejecucion local
+
+Como usa modulos ES, es mejor servirlo por HTTP y no abrir `index.html` directamente.
+
+Opciones:
+
+```powershell
+# Si Python esta disponible
+python -m http.server 8000
+```
+
+```powershell
+# Alternativa con Node, sin instalar paquetes
+node -e "const http=require('http'),fs=require('fs'),path=require('path');const root=process.cwd();const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.png':'image/png','.svg':'image/svg+xml','.ico':'image/x-icon'};http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');const rel=url.pathname==='/'?'index.html':decodeURIComponent(url.pathname).replace(/^\\/+/, '');const file=path.join(root,rel);fs.readFile(file,(err,data)=>{if(err){res.writeHead(404);res.end('not found');return;}res.writeHead(200,{'Content-Type':types[path.extname(file)]||'application/octet-stream'});res.end(data);});}).listen(8000)"
+```
+
+Luego abrir:
+
+```text
+http://localhost:8000
+```
+
+## Verificacion
+
+No hay test runner configurado. Para smoke checks de sintaxis:
+
+```powershell
+node scripts/generate-config.mjs
+node --check js/main.js
+node --check js/pairs.js
+node --check js/chartAdvanced.js
+node --check js/exchange.js
+node --check js/wallet.js
+node --check js/transactions.js
+node --check js/prices.js
+```
+
+Prueba rapida de indicadores:
+
+```powershell
+node --input-type=module -e "const m=await import('./js/chartAdvanced.js'); const data=Array.from({length:80},(_,i)=>({x:i,o:100+i,h:104+i,l:98+i,c:101+i,v:1000+i,q:230000+i*20})); console.log(m.calculateVolume(data).at(-1).q, m.calculateStochRSI(data).k.length, m.calculateBollingerBands(data).upper.length);"
+```
+
+Verificacion visual recomendada:
+
+- abrir una wallet guardada,
+- confirmar que balances aparecen,
+- confirmar que transacciones ETH/Base cargan,
+- abrir un par,
+- mover el mouse sobre la grafica,
+- comprobar que la barra OHLC no tapa candles,
+- comprobar que tags de precio/Stoch RSI no se sobreponen,
+- probar toggles `BB`, `VOL`, `Stoch RSI`,
+- probar zoom con rueda y pan con drag.
+
+## Convenciones de desarrollo
+
+- Mantener JavaScript como ES Modules.
+- No introducir bundler si no es necesario.
+- Usar `state.js` para estado compartido.
+- Mantener helpers tecnicos de grafica en `chartAdvanced.js`.
+- Mantener plugins/render de Chart.js en `pairs.js`.
+- Evitar reescribir DOM con strings enormes si se puede usar fragmentos, salvo en tablas ya existentes.
+- Evitar delays artificiales en transacciones. Preferir cache, deduplicacion y concurrencia limitada.
+- No dejar codigo comentado muerto ni secciones "eliminadas".
+- Si se agrega un indicador:
+  - calcularlo en `chartAdvanced.js`,
+  - agregar dataset en `buildDatasets()`,
+  - agregar escala si necesita panel,
+  - agregar leyenda/tag si aplica,
+  - agregar toggle en `index.html` y estado en `state.js`.
+
+## Problemas conocidos
+
+- Las API keys ya no estan en archivos versionables, pero si se usan en navegador siguen siendo visibles en runtime.
+- CoinStats puede responder `429` o `409`. El codigo intenta reducir bursts con caches y concurrencia limitada.
+- Algunos iconos de tokens dependen de URLs externas y pueden fallar.
+- La app depende de CDN para Chart.js; sin internet no renderiza la grafica.
+- No hay tests automatizados ni CI.
+
+## Roadmap
+
+- Agregar `package.json` con scripts `start`, `check` y futuro `test`.
+- Mover llamadas con API keys a proxy/serverless.
+- Agregar tests unitarios para indicadores y normalizacion de transacciones.
+- Agregar persistencia de preferencias de indicadores/intervalo.
+- Agregar mas indicadores: EMA, VWAP, MACD, RSI clasico.
+- Mejorar fallback de iconos por simbolo.
+- Agregar skeletons de carga para transacciones y grafica.
+- Agregar modo responsive dedicado para mobile trading.
